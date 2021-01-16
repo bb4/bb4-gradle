@@ -1,0 +1,27 @@
+// Copyright by Barry G. Becker, 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+// @author Barry G Becker
+
+apply plugin: 'java'
+apply plugin: 'scala'
+apply plugin: 'maven' // deprecated: use maven-publish instead
+apply plugin: 'signing'
+
+description = 'Common gradle build logic'
+group = 'com.barrybecker4'
+project.version = '1.6-SNAPSHOT'
+
+ext {
+    archivesBaseName = 'bb4-gradle'
+    isReleaseVersion = !version.endsWith("SNAPSHOT")
+}
+
+repositories {
+    mavenCentral()
+    // The SNAPSHOT releases should come from one of these next two (did it change?)
+    maven { url "https://oss.sonatype.org/content/groups/staging" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/"}
+}
+
+
+
+apply from: 'src/main/resources/bb4-publish.gradle'
