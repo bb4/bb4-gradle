@@ -3,7 +3,7 @@
 /**
  * This common gradle build file is used to deploy bb4 artifacts to a website.
  * Any project on github can include it using
- * apply from: 'https://raw.githubusercontent.com/bb4/bb4-common/master/bb4-deploy.gradle'
+ * apply from: project.buildscript.classLoader.getResource('bb4-deploy.gradle').toURI()
  */
 
 // This is the staging directory where all website content will be placed
@@ -61,6 +61,7 @@ task deploySchemas(type:Copy, description: "Copy schema files to $schemaDistribu
 }
 
 task deployZip(type: Copy, description: "Copy zip of jars and run scripts")  {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates (needed for gradlew 7+)
     group = 'distribution'
     group = 'distribution'
     from "build/distributions"

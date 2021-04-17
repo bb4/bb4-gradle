@@ -3,7 +3,7 @@
 /**
  * This is common gradle build configuration for all bb4 projects.
  * Any project on github can include it using
- * apply from: 'https://raw.githubusercontent.com/bb4/bb4-common/master/bb4.gradle'
+ * apply from: project.buildscript.classLoader.getResource('bb4.gradle').toURI()
  * Both Java and Scala are fully supported. Most projects have been ported to Scala.
  */
 apply plugin: 'scala'
@@ -12,7 +12,7 @@ apply plugin: 'project-report'
 apply plugin: 'application'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
-apply plugin: 'maven' // deprecated: use maven-publish instead
+apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 sourceCompatibility = '1.11'
@@ -132,6 +132,7 @@ clean.doFirst {
 }
 
 task copyToLib(dependsOn: jar, type: Copy) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     description = "Copies the downloaded dependencies to the libs directory so they can be deployed"
     into "build/libs"
     from configurations.runtime

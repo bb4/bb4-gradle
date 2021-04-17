@@ -1,10 +1,16 @@
-// Copyright by Barry G. Becker, 2013 - 2018. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+// Copyright by Barry G. Becker, 2013 - 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /**
- * This common gradle build file is used to publish bb4 artifacts to Sonatype.
+ * This common gradle build file is used to publish bb4 artifacts to maven Sonatype repository.
  * Any project on github can include it using
- * apply from: 'https://raw.githubusercontent.com/bb4/bb4-common/master/bb4-publish.gradle'
+ * apply from: project.buildscript.classLoader.getResource('bb4-publish.gradle').toURI()
  */
+
+/*
+java {
+    withJavadocJar()
+    withSourcesJar()
+}*/
 
 /** javadoc jar used for the whole project. Used only if jarMap was not specified. */
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -114,32 +120,23 @@ artifacts {
     }
 }
 
-/** release jars need to be signed when published to Sonatype so the publisher can be verified. */
-signing {
-    required {
-        isReleaseVersion
-    }
-    sign configurations.archives
-}
-
 /** bb4 pom configuration for core jar artifacts */
 def jarPomConfig = {
-    name "${project.name}"
-    groupId 'com.barrybecker4'
-    packaging 'jar'
-    description "${project.name} java code."
-    url "https://github.com/barrybecker4/${project.name}"
+    name = '${project.name}'
+    packaging = 'jar'
+    description = "${project.name} java code."
+    url = "https://github.com/barrybecker4/${project.name}"
 
     // workaround to get changing snapshots to be updated.
     // Maybe not needed if --refresh-dependencies is used.
-    properties {
-       'timestamp' String.valueOf(System.currentTimeMillis())
-    }
+    //    properties {
+    //       'timestamp' String.valueOf(System.currentTimeMillis())
+    //    }
 
     scm {
-        url "scm:git@github.com:barrybecker4/${project.name}.git"
-        connection "scm:git@github.com:barrybecker4/${project.name}.git"
-        developerConnection "scm:git@github.com:barrybecker4/${project.name}.git"
+        url = "scm:git@github.com:barrybecker4/${project.name}.git"
+        connection = "scm:git@github.com:barrybecker4/${project.name}.git"
+        developerConnection = "scm:git@github.com:barrybecker4/${project.name}.git"
     }
 
     licenses {
@@ -159,31 +156,25 @@ def jarPomConfig = {
     }
 }
 
+/*
 configure(install.repositories.mavenInstaller) {
     pom.project jarPomConfig
-}
+}*/
 
 /**
  * Used to publish artifacts to Sonatype repository
  * See http://jedicoder.blogspot.com/2011/11/automated-gradle-project-deployment-to.html
  * Go to https://oss.sonatype.org to view staged repositories after publishing.
  */
-final def archives = uploadArchives {
-    repositories {
-        mavenDeployer {
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
 
-            beforeDeployment { MavenDeployment deployment ->
-                signing.signPom(deployment)
-            }
+            artifactId = '${project.name}'
+            groupId = 'com.barrybecker4'
+            from components.java
 
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-            }
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-            }
-
-            pom.project jarPomConfig
+            pom jarPomConfig
 
             // creates filters for each jar produced by jarMap entries (if any)
             jarMap.each { String key, Map value ->
@@ -196,7 +187,29 @@ final def archives = uploadArchives {
             }
         }
     }
+
+    repositories {
+        maven {
+            def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+            url = version.endsWith('SNAPSHOT') ? snapshotRepoUrl : releasesRepoUrl
+            credentials {
+                username = sonatypeUsername
+                password = sonatypePassword
+            }
+        }
+    }
 }
+
+/** release jars need to be signed when published to Sonatype so the publisher can be verified. */
+signing {
+    required {
+        isReleaseVersion
+    }
+    sign publishing.publications.mavenJava
+}
+
+final def archives = publishing
 archives
 
 /** Effectively the same as uploadArchives, but I like this name better */
