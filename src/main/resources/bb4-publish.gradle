@@ -213,6 +213,6 @@ final def archives = publishing
 archives
 
 /** Effectively the same as uploadArchives, but I like this name better */
-task publishArtifacts (dependsOn:uploadArchives) {
+task publishArtifacts (dependsOn:publish) {
     description = 'Publish artifacts to Sonatype repository'
 }
