@@ -6,11 +6,6 @@
  * apply from: project.buildscript.classLoader.getResource('bb4-publish.gradle').toURI()
  */
 
-/*
-java {
-    withJavadocJar()
-    withSourcesJar()
-}*/
 
 /** javadoc jar used for the whole project. Used only if jarMap was not specified. */
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -127,12 +122,6 @@ def jarPomConfig = {
     description = "${project.name} java code."
     url = "https://github.com/barrybecker4/${project.name}"
 
-    // workaround to get changing snapshots to be updated.
-    // Maybe not needed if --refresh-dependencies is used.
-    //    properties {
-    //       'timestamp' String.valueOf(System.currentTimeMillis())
-    //    }
-
     scm {
         url = "scm:git@github.com:barrybecker4/${project.name}.git"
         connection = "scm:git@github.com:barrybecker4/${project.name}.git"
@@ -155,11 +144,6 @@ def jarPomConfig = {
         }
     }
 }
-
-/*
-configure(install.repositories.mavenInstaller) {
-    pom.project jarPomConfig
-}*/
 
 /**
  * Used to publish artifacts to Sonatype repository
