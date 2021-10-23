@@ -23,5 +23,4 @@ repositories {
 }
 
 
-
 apply from: 'src/main/resources/bb4-publish.gradle'
