@@ -117,7 +117,7 @@ artifacts {
 
 /** bb4 pom configuration for core jar artifacts */
 def jarPomConfig = {
-    name = '${project.name}'
+    name = "${project.name}"
     packaging = 'jar'
     description = "${project.name} java code."
     url = "https://github.com/barrybecker4/${project.name}"
@@ -154,7 +154,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
 
-            artifactId = '${project.name}'
+            artifactId = "${project.name}"
             groupId = 'com.barrybecker4'
             from components.java
 
