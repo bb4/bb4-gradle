@@ -1,4 +1,4 @@
-// Copyright by Barry G. Becker, 2018 - 2019. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+// Copyright by Barry G. Becker, 2018 - 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /**
  * This common gradle build file is used to deploy bb4 artifacts to a website.
