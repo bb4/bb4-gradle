@@ -8,7 +8,7 @@ apply plugin: 'signing'
 
 description = 'Common gradle build logic'
 group = 'com.barrybecker4'
-project.version = '1.6.1'
+project.version = '1.7-SNAPSHOT'
 
 ext {
     archivesBaseName = 'bb4-gradle'
