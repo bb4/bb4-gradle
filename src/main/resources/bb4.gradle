@@ -41,24 +41,24 @@ if (!hasProperty('sonatypePassword')) {
 sourceSets {
     main {
         java {
-            srcDir 'source'
+            srcDirs = ['source']
         }
         scala {
-            srcDir 'scala-source'
+            srcDirs = ['scala-source']
         }
         resources {
-            srcDirs 'source', 'scala-source'
+            srcDirs = ['source', 'scala-source']
         }
     }
     test {
         java {
-            srcDir 'test'
+            srcDirs = ['test']
         }
         scala {
-            srcDir 'scala-test'
+            srcDirs = ['scala-test']
         }
         resources {
-            srcDirs 'test', 'scala-test'
+            srcDirs = ['test', 'scala-test']
         }
     }
 }

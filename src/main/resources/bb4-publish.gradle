@@ -96,14 +96,14 @@ jarMap.each { String key, Map value ->
 
 /**
  * These artifacts need to be published so other projects can depend on them.
- * The default jar is only included if there is not an explicit jarMap.
+ * The default jars are only included if there is not an explicit jarMap.
  */
 artifacts {
     if (jarMap.size() == 0) {
+        archives scaladocJar
         archives jar
         archives sourcesJar
         archives javadocJar
-        archives scaladocJar
     }
 
     jarMap.each { String key, Map value ->
@@ -157,6 +157,10 @@ publishing {
             artifactId = "${project.name}"
             groupId = 'com.barrybecker4'
             from components.java
+
+            artifact sourcesJar
+            artifact javadocJar
+            artifact scaladocJar
 
             pom jarPomConfig
 
