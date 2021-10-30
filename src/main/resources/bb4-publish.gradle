@@ -153,7 +153,6 @@ publishing {
     publications {
         if (jarMap.size() == 0) {
             mavenJava(MavenPublication) {
-
                 artifactId = "${project.name}"
                 groupId = 'com.barrybecker4'
                 from components.java
@@ -161,7 +160,6 @@ publishing {
                 artifact sourcesJar
                 artifact javadocJar
                 artifact scaladocJar
-
                 pom jarPomConfig
             }
         }
