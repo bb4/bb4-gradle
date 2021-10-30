@@ -7,7 +7,7 @@
  * Both Java and Scala are fully supported. Most projects have been ported to Scala.
  */
 apply plugin: 'scala'
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'project-report'
 apply plugin: 'application'
 apply plugin: 'idea'

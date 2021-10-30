@@ -6,7 +6,6 @@
  * apply from: project.buildscript.classLoader.getResource('bb4-publish.gradle').toURI()
  */
 
-
 /** javadoc jar used for the whole project. Used only if jarMap was not specified. */
 task javadocJar(type: Jar, dependsOn: javadoc) {
     description = 'Create a jar file containing all project javadoc. Needed by Sonatype release.'
@@ -56,14 +55,14 @@ if (hasProperty('jarMap')) {
  */
 jarMap.each { String key, Map value ->
     task "${key}Jar"(type: Jar)  {
-        baseName = "bb4-${key}"
+        archiveBaseName = "bb4-${key}"
         from sourceSets.main.output
         value['include'].each { pattern -> include pattern }
         if (value.containsKey('exclude'))
             value['exclude'].each { pattern -> exclude pattern }
         manifest {
             attributes 'Implementation-Title': "${key} code",
-                    'Implementation-Version': version,
+                    'Implementation-Version': archiveVersion,
                     'Application-Name': "${key}",
                     'Built-By': System.properties['user.name'],
                     'provider': 'gradle'
@@ -72,7 +71,7 @@ jarMap.each { String key, Map value ->
     task "${key}JavadocJar"(type: Jar, dependsOn: javadoc) {
         description = "Creates a javadoc jar file for ${key}. Needed for publishing to Sonatype."
         classifier = 'javadoc'
-        baseName = "bb4-${key}"
+        archiveBaseName = "bb4-${key}"
         from javadoc.destinationDir
         value['include'].each { pattern -> include pattern }
     }
@@ -152,26 +151,33 @@ def jarPomConfig = {
  */
 publishing {
     publications {
-        mavenJava(MavenPublication) {
+        if (jarMap.size() == 0) {
+            mavenJava(MavenPublication) {
 
-            artifactId = "${project.name}"
-            groupId = 'com.barrybecker4'
-            from components.java
+                artifactId = "${project.name}"
+                groupId = 'com.barrybecker4'
+                from components.java
 
-            artifact sourcesJar
-            artifact javadocJar
-            artifact scaladocJar
+                artifact sourcesJar
+                artifact javadocJar
+                artifact scaladocJar
 
-            pom jarPomConfig
-
-            // creates filters for each jar produced by jarMap entries (if any)
+                pom jarPomConfig
+            }
+        }
+        else {
             jarMap.each { String key, Map value ->
-                def jarName = "bb4-$key"
-                def jarPom = addFilter("${key}Jar") { artifact, file ->
-                    artifact.name == jarName
+                "${key}"(MavenPublication) {
+                    artifactId = "bb4-$key"
+                    groupId = 'com.barrybecker4'
+                    from components.java
+
+                    artifact tasks["${key}Jar"]
+                    artifact tasks["${key}JavadocJar"]
+                    artifact tasks["${key}ScaladocJar"]
+                    artifact tasks["${key}SourcesJar"]
+                    pom jarPomConfig
                 }
-                jarPom.project jarPomConfig
-                jarPom.artifactId = jarName
             }
         }
     }
@@ -194,7 +200,14 @@ signing {
     required {
         isReleaseVersion
     }
-    sign publishing.publications.mavenJava
+    if (jarMap.size() == 0) {
+        sign publishing.publications.mavenJava
+    } else {
+        jarMap.each { String key, Map value ->
+            sign "publishing.publications.$key"
+        }
+    }
+
 }
 
 final def archives = publishing
