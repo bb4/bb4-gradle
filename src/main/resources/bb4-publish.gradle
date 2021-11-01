@@ -9,6 +9,7 @@
 /** javadoc jar used for the whole project. Used only if jarMap was not specified. */
 task javadocJar(type: Jar, dependsOn: javadoc) {
     description = 'Create a jar file containing all project javadoc. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('javadoc')
     from javadoc.destinationDir
 }
@@ -16,6 +17,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 /** scaladoc jar used for the whole project. Used only if jarMap was not specified. */
 task scaladocJar(type: Jar, dependsOn: scaladoc) {
     description = 'Create a jar file containing all project scaladoc. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('scaladoc')
     from scaladoc.destinationDir
 }
@@ -23,6 +25,7 @@ task scaladocJar(type: Jar, dependsOn: scaladoc) {
 /** sources jar used for the whole project. Used only if jarMap was not specified. */
 task sourcesJar(type: Jar, dependsOn: classes) {
     description = 'Create a jar file containing all project sources. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('sources')
     from sourceSets.main.allSource
 }

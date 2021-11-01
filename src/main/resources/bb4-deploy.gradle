@@ -15,6 +15,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 // when copying the html, {version} is replaced with ${project.version}
 task deployHtml(type: Copy, description: "Copy html related files to $projectDistributionDir") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     group = 'distribution'
     from "source/html"
     into "$projectDistributionDir"
