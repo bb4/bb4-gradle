@@ -73,6 +73,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}JavadocJar"(type: Jar, dependsOn: javadoc) {
         description = "Creates a javadoc jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'javadoc'
         archiveBaseName = "bb4-${key}"
         from javadoc.destinationDir
@@ -80,6 +81,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}ScaladocJar"(type: Jar, dependsOn: scaladoc) {
         description = "Creates a scaladoc jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'scaladoc'
         baseName = "bb4-${key}"
         from javadoc.destinationDir
@@ -87,6 +89,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}SourcesJar"(type: Jar, dependsOn: classes) {
         description = "Creates a source jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'sources'
         baseName = "bb4-${key}"
         from sourceSets.main.allSource
