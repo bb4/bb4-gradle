@@ -205,14 +205,7 @@ signing {
     required {
         isReleaseVersion
     }
-    if (jarMap.size() == 0) {
-        sign publishing.publications.mavenJava
-    } else {
-        jarMap.each { String key, Map value ->
-            sign "publishing.publications.$key"
-        }
-    }
-
+    sign publishing.publications
 }
 
 final def archives = publishing
