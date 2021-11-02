@@ -135,7 +135,7 @@ task copyToLib(dependsOn: jar, type: Copy) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     description = "Copies the downloaded dependencies to the libs directory so they can be deployed"
     into "build/libs"
-    from configurations.runtime
+    from configurations.runtimeClasspath
 }
 
 project.archivesBaseName = project.ext.archivesBaseName
@@ -154,8 +154,6 @@ jar {
     }
 }
 
-if (rootProject == project) { // https://github.com/gradle/gradle/issues/5816
-    wrapper {
-        gradleVersion = '6.3'
-    }
-}
+// Since gradle 7, use
+// gradle wrapper --gradle-version 7.x --distribution-type all
+// to upgrade to the next version
