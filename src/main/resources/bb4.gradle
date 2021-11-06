@@ -156,4 +156,6 @@ jar {
 
 // Since gradle 7, use
 // gradle wrapper --gradle-version 7.x --distribution-type all
-// to upgrade to the next version
+// to upgrade to the next version. For example
+// ./gradlew wrapper --gradle-version=7.3-rc-5 --distribution-type all
+

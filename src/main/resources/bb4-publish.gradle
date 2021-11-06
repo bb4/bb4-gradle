@@ -15,7 +15,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 }
 
 /** scaladoc jar used for the whole project. Used only if jarMap was not specified. */
-task scaladocJar(type: Jar, dependsOn: scaladoc) {
+task scaladocJar(type: Jar, dependsOn: [scaladoc, javadocJar]) {
     description = 'Create a jar file containing all project scaladoc. Needed by Sonatype release.'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('scaladoc')
@@ -80,7 +80,7 @@ jarMap.each { String key, Map value ->
         from javadoc.destinationDir
         value['include'].each { pattern -> include pattern }
     }
-    task "${key}ScaladocJar"(type: Jar, dependsOn: scaladoc) {
+    task "${key}ScaladocJar"(type: Jar, dependsOn: [scaladoc, "${key}JavadocJar"]) {
         description = "Creates a scaladoc jar file for ${key}. Needed for publishing to Sonatype."
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'scaladoc'
@@ -172,15 +172,19 @@ publishing {
         }
         else {
             jarMap.each { String key, Map value ->
-                "${key}"(MavenPublication) {
-                    artifactId = "bb4-$key"
-                    groupId = 'com.barrybecker4'
+                "maven${key}"(MavenPublication) {
                     from components.java
 
-                    artifact tasks["${key}Jar"]
-                    artifact tasks["${key}JavadocJar"]
-                    artifact tasks["${key}ScaladocJar"]
-                    artifact tasks["${key}SourcesJar"]
+                    afterEvaluate {
+                        artifactId = "bb4-$key"
+                        groupId = 'com.barrybecker4'
+
+                        artifact tasks["${key}Jar"]
+                        artifact tasks["${key}JavadocJar"]
+                        artifact tasks["${key}ScaladocJar"]
+                        artifact tasks["${key}SourcesJar"]
+                    }
+
                     pom jarPomConfig
                 }
             }
@@ -208,8 +212,12 @@ signing {
     sign publishing.publications
 }
 
-final def archives = publishing
-archives
+// Try and make gradle 7 validation happy
+jarMap.each { String key, Map value ->
+    publish.configure {
+        mustRunAfter "signMaven${key}Publication"
+    }
+}
 
 /** Effectively the same as publish, but I like this name better */
 task publishArtifacts (dependsOn:publish) {
