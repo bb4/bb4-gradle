@@ -150,7 +150,6 @@ jar {
                 'Main-Class': mainClassName,
                 'Build-Jdk' : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
                 provider: 'gradle'
-
     }
 }
 

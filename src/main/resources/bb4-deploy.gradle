@@ -59,15 +59,16 @@ task deploySchemas(type:Copy, description: "Copy schema files to $schemaDistribu
     group = 'distribution'
     from fileTree("$project.projectDir").include("**/*.dtd", "**/*.xsd").files
     into "$schemaDistributionDir"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 task deployZip(type: Copy, description: "Copy zip of jars and run scripts")  {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates (needed for gradlew 7+)
     group = 'distribution'
-    group = 'distribution'
     from "build/distributions"
     into "$projectDistributionDir"
     include 'bb4-*.zip'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 task deploy(dependsOn: [build, deployHtml, deploySchemas, deployZip],
