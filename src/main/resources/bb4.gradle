@@ -1,10 +1,14 @@
 // Copyright by Barry G. Becker, 2013 - 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /**
- * This is common gradle build configuration for all bb4 projects.
+ * This plugin contains common gradle build configuration for all bb4 projects.
  * Any project on github can include it using
  * apply from: project.buildscript.classLoader.getResource('bb4.gradle').toURI()
  * Both Java and Scala are fully supported. Most projects have been ported to Scala.
+ *
+ * For now, plugins must still be included using the legacy 'apply' statement it cannot be used in script plugins
+ * (see https://docs.gradle.org/7.3/userguide/plugins.html#sec:plugins_block)
+ * In a future version of gradlew, we should be able to use the plugins {} syntax here.
  */
 apply plugin: 'scala'
 apply plugin: 'java-library'
