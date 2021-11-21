@@ -15,6 +15,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 // when copying the html, {version} is replaced with ${project.version}
 task deployHtml(type: Copy, description: "Copy html related files to $projectDistributionDir") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     group = 'distribution'
     from "source/html"
     into "$projectDistributionDir"
@@ -58,15 +59,15 @@ task deploySchemas(type:Copy, description: "Copy schema files to $schemaDistribu
     group = 'distribution'
     from fileTree("$project.projectDir").include("**/*.dtd", "**/*.xsd").files
     into "$schemaDistributionDir"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-task deployZip(type: Copy, description: "Copy zip of jars and run scripts")  {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // allow duplicates (needed for gradlew 7+)
-    group = 'distribution'
+task deployZip(type: Copy, dependsOn: [build], description: "Copy zip of jars and run scripts")  {
     group = 'distribution'
     from "build/distributions"
     into "$projectDistributionDir"
     include 'bb4-*.zip'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 task deploy(dependsOn: [build, deployHtml, deploySchemas, deployZip],
@@ -89,6 +90,5 @@ applicationDistribution.from("build/libs") {
     exclude "*-sources.jar"
     exclude "*-scaladoc.jar"
     exclude "*-javadoc.jar"
-    exclude "scala-library-2.13.*.jar"
     into "lib"
 }

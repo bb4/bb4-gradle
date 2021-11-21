@@ -8,7 +8,7 @@ apply plugin: 'signing'
 
 description = 'Common gradle build logic'
 group = 'com.barrybecker4'
-project.version = '1.6.5'
+project.version = '1.7-SNAPSHOT'
 
 ext {
     archivesBaseName = 'bb4-gradle'
@@ -17,8 +17,8 @@ ext {
 
 repositories {
     mavenCentral()
-    // The SNAPSHOT releases should come from one of these next two (did it change?)
-    maven { url "https://oss.sonatype.org/content/groups/staging" }
+    // The SNAPSHOT releases should come from one of these next two
+    maven { url "https://oss.sonatype.org/content/groups/staging/" }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/"}
 }
 

@@ -9,6 +9,7 @@
 /** javadoc jar used for the whole project. Used only if jarMap was not specified. */
 task javadocJar(type: Jar, dependsOn: javadoc) {
     description = 'Create a jar file containing all project javadoc. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('javadoc')
     from javadoc.destinationDir
 }
@@ -16,6 +17,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 /** scaladoc jar used for the whole project. Used only if jarMap was not specified. */
 task scaladocJar(type: Jar, dependsOn: scaladoc) {
     description = 'Create a jar file containing all project scaladoc. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('scaladoc')
     from scaladoc.destinationDir
 }
@@ -23,6 +25,7 @@ task scaladocJar(type: Jar, dependsOn: scaladoc) {
 /** sources jar used for the whole project. Used only if jarMap was not specified. */
 task sourcesJar(type: Jar, dependsOn: classes) {
     description = 'Create a jar file containing all project sources. Needed by Sonatype release.'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set('sources')
     from sourceSets.main.allSource
 }
@@ -33,6 +36,7 @@ javadoc.doLast {
         from sourceSets.main.allSource
         into javadoc.destinationDir
         include '**/package.png'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }
 
@@ -70,6 +74,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}JavadocJar"(type: Jar, dependsOn: javadoc) {
         description = "Creates a javadoc jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'javadoc'
         archiveBaseName = "bb4-${key}"
         from javadoc.destinationDir
@@ -77,6 +82,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}ScaladocJar"(type: Jar, dependsOn: scaladoc) {
         description = "Creates a scaladoc jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'scaladoc'
         baseName = "bb4-${key}"
         from javadoc.destinationDir
@@ -84,6 +90,7 @@ jarMap.each { String key, Map value ->
     }
     task "${key}SourcesJar"(type: Jar, dependsOn: classes) {
         description = "Creates a source jar file for ${key}. Needed for publishing to Sonatype."
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         classifier = 'sources'
         baseName = "bb4-${key}"
         from sourceSets.main.allSource
@@ -165,16 +172,20 @@ publishing {
         }
         else {
             jarMap.each { String key, Map value ->
-                "${key}"(MavenPublication) {
-                    artifactId = "bb4-$key"
-                    groupId = 'com.barrybecker4'
+                "maven${key}"(MavenPublication) {
                     from components.java
 
-                    artifact tasks["${key}Jar"]
-                    artifact tasks["${key}JavadocJar"]
-                    artifact tasks["${key}ScaladocJar"]
-                    artifact tasks["${key}SourcesJar"]
-                    artifact file("build/libs/bb4-${key}-${version}.jar.asc")
+                    afterEvaluate {
+                        artifactId = "bb4-$key"
+                        groupId = 'com.barrybecker4'
+
+                        artifact tasks["${key}Jar"]
+                        artifact tasks["${key}JavadocJar"]
+                        artifact tasks["${key}ScaladocJar"]
+                        artifact tasks["${key}SourcesJar"]
+                        artifact file("build/libs/bb4-${key}-${version}.jar.asc")
+                    }
+
                     pom jarPomConfig
                 }
             }
@@ -202,8 +213,12 @@ signing {
     sign publishing.publications
 }
 
-final def archives = publishing
-archives
+// Try and make gradle 7 validation happy
+jarMap.each { String key, Map value ->
+    publish.configure {
+        mustRunAfter "signMaven${key}Publication"
+    }
+}
 
 /** Effectively the same as publish, but I like this name better */
 task publishArtifacts (dependsOn:publish) {
