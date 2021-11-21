@@ -131,7 +131,7 @@ clean.doFirst {
     delete "${rootDir}/dist/"
 }
 
-task copyToLib(dependsOn: jar, type: Copy) {
+task copyToLib(type: Copy, dependsOn: jar) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     description = "Copies the downloaded dependencies to the libs directory so they can be deployed"
     into "build/libs"

@@ -61,7 +61,7 @@ task deploySchemas(type:Copy, description: "Copy schema files to $schemaDistribu
 }
 
 task deployZip(type: Copy, description: "Copy zip of jars and run scripts")  {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates (needed for gradlew 7+)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // allow duplicates (needed for gradlew 7+)
     group = 'distribution'
     group = 'distribution'
     from "build/distributions"
@@ -89,5 +89,6 @@ applicationDistribution.from("build/libs") {
     exclude "*-sources.jar"
     exclude "*-scaladoc.jar"
     exclude "*-javadoc.jar"
+    exclude "scala-library-2.13.*.jar"
     into "lib"
 }
