@@ -99,7 +99,7 @@ if (JavaVersion.current().isJava8Compatible()) {
         tasks.withType(ScalaCompile) {
             scalaCompileOptions.additionalParameters = [
                     "-encoding", "utf8",
-                    "-deprecation", "-unchecked", "-Xlint",
+                    "-deprecation", "-unchecked",
                     "-feature",
                     "-language:implicitConversions"
             ]
