@@ -19,8 +19,6 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
-sourceCompatibility = '1.11'
-targetCompatibility = '1.11'
 defaultTasks 'build'
 
 /**
@@ -39,6 +37,10 @@ if (!hasProperty('sonatypeUsername')) {
 }
 if (!hasProperty('sonatypePassword')) {
     ext.sonatypePassword = ''
+}
+
+compileJava {
+    options.release = 11
 }
 
 /** all bb4 projects use this directory layout. */
@@ -93,8 +95,7 @@ if (JavaVersion.current().isJava8Compatible()) {
             options.addStringOption('Xdoclint:none', '-quiet')
         }
         tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:deprecation" // << "-Werror"  (this will terminate compile if warnings)
-            // "-Xlint:unchecked" <<
+            options.deprecation = true
         }
         tasks.withType(ScalaCompile) {
             scalaCompileOptions.additionalParameters = [
