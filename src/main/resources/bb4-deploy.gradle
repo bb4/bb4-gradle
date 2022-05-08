@@ -37,7 +37,7 @@ def createTableRows(indent) {
             if (!value.containsKey("deploy") || value.deploy) {
                 def tr = indent + "<tr>\n" +
                         indent + "  <td>\n" +
-                        indent + "    <h3>" + value.title + "</h3>\n" +
+                        indent + "    <a name=\"" + key + "\"><h3>" + value.title + "</h3></a>\n" +
                         indent + "    <pre>" + value.command + "</pre>\n" +
                         indent + "    <p>" + value.longDescription + "</p>\n" +
                         indent + "  </td>\n" +
