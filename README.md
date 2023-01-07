@@ -3,7 +3,7 @@
 Shared build logic for bb4 projects. There are 3 main components:
  - `bb4.gradle` - general build configuration for scala or java projects.
  - `bb4-deploy` - used to deploy projects to a website.
- - `bb4-publish` - used to deploy projects tp sonatype, and from there released to a maven repository so that they can be shared.
+ - `bb4-publish` - used to deploy projects to sonatype, and from there release to a maven repository so that they can be shared.
 
 To use, include something like the following in your projects build.gradle file
 

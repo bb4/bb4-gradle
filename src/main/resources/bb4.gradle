@@ -1,4 +1,4 @@
-// Copyright by Barry G. Becker, 2013 - 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+// Copyright by Barry G. Becker, 2013 - 2023. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /**
  * This plugin contains common gradle build configuration for all bb4 projects.
@@ -27,7 +27,7 @@ defaultTasks 'build'
  * Only sign the artifacts if it is a final release.
  */
 ext {
-    scalaVersion = '3.1.1'
+    scalaVersion = '3.2.1'
     vecmathVersion = '1.3.1'
 }
 
