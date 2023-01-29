@@ -1,4 +1,4 @@
-// Copyright by Barry G. Becker, 2021. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+// Copyright by Barry G. Becker, 2021 2023. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 apply plugin: 'java-library'
 apply plugin: 'scala'
 apply plugin: 'maven-publish'
