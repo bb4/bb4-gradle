@@ -40,7 +40,7 @@ if (!hasProperty('sonatypePassword')) {
 }
 
 compileJava {
-    options.release = 11
+    options.release = 17
 }
 
 /** all bb4 projects use this directory layout. */
@@ -86,26 +86,6 @@ repositories {
 run {
     // allows keyboard input from cmd line
     standardInput = System.in
-}
-
-// Suppress javadoc warning when using java 8.
-if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-        tasks.withType(Javadoc) {
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
-        tasks.withType(JavaCompile) {
-            options.deprecation = true
-        }
-        tasks.withType(ScalaCompile) {
-            scalaCompileOptions.additionalParameters = [
-                    "-encoding", "utf8",
-                    "-deprecation", "-unchecked",
-                    "-feature",
-                    "-language:implicitConversions"
-            ]
-        }
-    }
 }
 
 /** check for updates every build */
