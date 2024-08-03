@@ -27,20 +27,22 @@ defaultTasks 'build'
  * Only sign the artifacts if it is a final release.
  */
 ext {
-    scalaVersion = '3.2.1'
+    scalaVersion = '3.3.3'
     vecmathVersion = '1.3.1'
 }
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-if (!hasProperty('sonatypeUsername')) {
-    ext.sonatypeUsername = ''
+if (!hasProperty('ossrhToken')) {
+    ext.ossrhToken = ''
 }
-if (!hasProperty('sonatypePassword')) {
-    ext.sonatypePassword = ''
+if (!hasProperty('ossrhTokenPassword')) {
+    ext.ossrhTokenPassword = ''
 }
 
 compileJava {
     options.release = 17
+    sourceCompatibility = 17
+    targetCompatibility = 17
 }
 
 /** all bb4 projects use this directory layout. */
