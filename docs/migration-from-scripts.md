@@ -37,7 +37,7 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
     }
 }
 ```
@@ -46,9 +46,9 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id 'com.barrybecker4.bb4.scala-library' version '2.0.0'
-    id 'com.barrybecker4.bb4.publish' version '2.0.0'      // if publishing
-    id 'com.barrybecker4.bb4.application' version '2.0.0'  // if using app + deploy*
+    id 'com.barrybecker4.bb4.scala-library' version '2.0-SNAPSHOT' // or '2.0.0' after release
+    id 'com.barrybecker4.bb4.publish' version '2.0-SNAPSHOT'      // if publishing
+    id 'com.barrybecker4.bb4.application' version '2.0-SNAPSHOT' // if using app + deploy*
 }
 
 bb4 {
