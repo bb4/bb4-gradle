@@ -158,8 +158,8 @@ class Bb4PublishPlugin implements Plugin<Project> {
         }
 
         publishing.repositories.maven {
-            def releasesRepoUrl = (project.findProperty('bb4.ossrh.releaseStagingUrl') ?: 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/').toString()
-            def snapshotRepoUrl = (project.findProperty('bb4.ossrh.snapshotUrl') ?: 'https://s01.oss.sonatype.org/content/repositories/snapshots/').toString()
+            def releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl(project)
+            def snapshotRepoUrl = resolveBb4SnapshotRepoUrl(project)
             url = project.version.toString().endsWith('SNAPSHOT') ? snapshotRepoUrl : releasesRepoUrl
             credentials {
                 username = project.providers.gradleProperty('ossrhToken').orNull ?: System.getenv('OSSRH_USERNAME') ?: ''
@@ -170,14 +170,41 @@ class Bb4PublishPlugin implements Plugin<Project> {
         def isRelease = !project.version.toString().endsWith('SNAPSHOT')
         project.signing {
             required { isRelease }
-            sign publishing.publications
+            // Only register Sign tasks for releases; with required=false and no GPG key, Gradle can
+            // fail evaluating Sign.onlyIf ("Signing is required, or signatory is set").
+            if (isRelease) {
+                sign publishing.publications
+            }
         }
 
         project.tasks.register('publishArtifacts') {
             group = 'publishing'
-            description = 'Publish artifacts to Sonatype repository'
+            description = 'Publish artifacts to Central snapshot or staging repository'
             dependsOn 'publish'
         }
+    }
+
+    /** Legacy OSSRH hosts return 405 after EOL; gradle.properties may still override with these. */
+    private static String resolveBb4SnapshotRepoUrl(Project project) {
+        def defaultUrl = 'https://central.sonatype.com/repository/maven-snapshots/'
+        def explicit = (project.findProperty('bb4.ossrh.snapshotUrl') ?: project.findProperty('bb4.central.snapshotUrl'))?.toString()?.trim()
+        if (!explicit) return defaultUrl
+        if (explicit.contains('oss.sonatype.org')) {
+            project.logger.warn("bb4 Gradle: ignoring legacy bb4.ossrh.snapshotUrl (OSSRH EOL): {} — using {}", explicit, defaultUrl)
+            return defaultUrl
+        }
+        return explicit
+    }
+
+    private static String resolveBb4ReleaseStagingRepoUrl(Project project) {
+        def defaultUrl = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
+        def explicit = (project.findProperty('bb4.ossrh.releaseStagingUrl') ?: project.findProperty('bb4.central.releaseStagingUrl'))?.toString()?.trim()
+        if (!explicit) return defaultUrl
+        if (explicit.contains('oss.sonatype.org')) {
+            project.logger.warn("bb4 Gradle: ignoring legacy bb4.ossrh.releaseStagingUrl (OSSRH EOL): {} — using {}", explicit, defaultUrl)
+            return defaultUrl
+        }
+        return explicit
     }
 
     private static void addPom(MavenPublication pub, Project project) {
@@ -208,18 +235,41 @@ class Bb4PublishPlugin implements Plugin<Project> {
         }
     }
 
+    /**
+     * Resolve Javadoc output directory across Gradle versions.
+     * Gradle 8.14+: prefer {@code destinationDir} / {@code getDestinationDir()} (still populated for {@link Javadoc});
+     * {@link org.gradle.api.file.DirectoryProperty#present} can misbehave during lazy {@code jar.from} wiring.
+     * Older Gradle: fall back to {@code destinationDirectory} when it is a present {@link org.gradle.api.file.DirectoryProperty}.
+     */
     private static File javadocDestination(Javadoc javadoc) {
-        if (javadoc.destinationDirectory.present) {
-            return javadoc.destinationDirectory.get().asFile
-        }
-        return javadoc.destinationDir
+        return documentationOutputDir(javadoc)
     }
 
+    /** Same strategy as {@link #javadocDestination(Javadoc)} for {@link ScalaDoc}. */
     private static File scaladocDestination(ScalaDoc scaladoc) {
-        if (scaladoc.destinationDirectory.present) {
-            return scaladoc.destinationDirectory.get().asFile
+        return documentationOutputDir(scaladoc)
+    }
+
+    private static File documentationOutputDir(Object docTask) {
+        if (docTask.hasProperty('destinationDir')) {
+            def dir = docTask.destinationDir
+            if (dir != null) {
+                return dir as File
+            }
         }
-        return scaladoc.destinationDir
+        if (docTask.metaClass.respondsTo(docTask, 'getDestinationDir')) {
+            def dir = docTask.getDestinationDir()
+            if (dir != null) {
+                return dir as File
+            }
+        }
+        if (docTask.hasProperty('destinationDirectory')) {
+            def dd = docTask.destinationDirectory
+            if (dd instanceof org.gradle.api.file.DirectoryProperty && dd.present) {
+                return dd.get().asFile
+            }
+        }
+        return null
     }
 
     private static Map<String, Map> readJarMap(Project project) {

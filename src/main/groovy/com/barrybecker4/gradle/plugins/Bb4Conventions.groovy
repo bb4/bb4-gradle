@@ -11,8 +11,7 @@ final class Bb4Conventions {
     static void configureRepositories(RepositoryHandler repositories) {
         repositories.mavenCentral()
         repositories.maven { url = 'https://repo1.maven.org/maven2/' }
-        repositories.maven { url = 'https://oss.sonatype.org/content/groups/staging' }
-        repositories.maven { url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        repositories.maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
         repositories.maven { url = 'https://repository.jboss.org/nexus/content/repositories/thirdparty-releases' }
     }
 

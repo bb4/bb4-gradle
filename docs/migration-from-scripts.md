@@ -15,7 +15,7 @@
 ```groovy
 buildscript {
     repositories {
-        maven { url 'https://oss.sonatype.org/content/repositories/releases' }
+        mavenCentral()
     }
     dependencies {
         classpath 'com.barrybecker4:bb4-gradle:1.9.0'
@@ -37,7 +37,7 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
+        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 }
 ```

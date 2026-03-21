@@ -14,9 +14,9 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects. T
 
 | Plugin ID | Purpose |
 |-----------|---------|
-| `com.barrybecker4.bb4.base` | Java 21 toolchain, shared repositories, resolution defaults, OSSRH property placeholders |
+| `com.barrybecker4.bb4.base` | Java 21 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
-| `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Sonatype OSSRH, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
+| `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks |
 
 Plugin implementations live under `src/main/groovy/`.
@@ -34,9 +34,8 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        // Required while using 2.0-SNAPSHOT from OSSRH (until a 2.0.x release hits Central):
-        maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
-        // Legacy namespace: try https://oss.sonatype.org/content/repositories/snapshots/ instead if resolution fails
+        // Required while using 2.0-SNAPSHOT from Central snapshot repo (until a 2.0.x release is on Central):
+        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 }
 ```
@@ -81,9 +80,9 @@ Source layout expected by `scala-library`:
 ./gradlew publishArtifacts
 ```
 
-Snapshots use OSSRH snapshot URL; releases use staging deploy (signing required for non-SNAPSHOT).
+Snapshots use the **Central** snapshot repository; releases use the **OSSRH Staging API** deploy URL (signing required for non-SNAPSHOT). **OSSRH is EOL** — use a **Central Portal user token**, not legacy OSSRH credentials.
 
-Details, troubleshooting (e.g. HTTP 405), and optional URL overrides: [docs/publishing-sonatype.md](docs/publishing-sonatype.md).
+Details: [docs/publishing-sonatype.md](docs/publishing-sonatype.md).
 
 ## Migration from script JAR (1.x)
 

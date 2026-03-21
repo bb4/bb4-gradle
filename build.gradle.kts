@@ -1,7 +1,43 @@
 import java.net.URI
+import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.publish.maven.MavenPublication
 // Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
+
+/** Legacy OSSRH hosts return 405 after EOL; ~/.gradle/gradle.properties often still overrides with these. */
+private fun Project.resolveBb4SnapshotRepoUrl(): String {
+    val defaultUrl = "https://central.sonatype.com/repository/maven-snapshots/"
+    val explicit = (findProperty("bb4.ossrh.snapshotUrl") as String?)
+        ?: (findProperty("bb4.central.snapshotUrl") as String?)
+    val trimmed = explicit?.trim().orEmpty()
+    if (trimmed.isEmpty()) return defaultUrl
+    if (trimmed.contains("oss.sonatype.org")) {
+        logger.warn(
+            "bb4-gradle: ignoring legacy bb4.ossrh.snapshotUrl (OSSRH EOL): {} — using {}",
+            trimmed,
+            defaultUrl,
+        )
+        return defaultUrl
+    }
+    return trimmed
+}
+
+private fun Project.resolveBb4ReleaseStagingRepoUrl(): String {
+    val defaultUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+    val explicit = (findProperty("bb4.ossrh.releaseStagingUrl") as String?)
+        ?: (findProperty("bb4.central.releaseStagingUrl") as String?)
+    val trimmed = explicit?.trim().orEmpty()
+    if (trimmed.isEmpty()) return defaultUrl
+    if (trimmed.contains("oss.sonatype.org")) {
+        logger.warn(
+            "bb4-gradle: ignoring legacy bb4.ossrh.releaseStagingUrl (OSSRH EOL): {} — using {}",
+            trimmed,
+            defaultUrl,
+        )
+        return defaultUrl
+    }
+    return trimmed
+}
 
 plugins {
     groovy
@@ -44,7 +80,7 @@ gradlePlugin {
         create("bb4Publish") {
             id = "com.barrybecker4.bb4.publish"
             displayName = "bb4 Maven publishing"
-            description = "Sonatype OSSRH publishing with sources/javadoc/scaladoc jars"
+            description = "Maven Central / Central Portal publishing with sources/javadoc/scaladoc jars"
             tags = listOf("bb4", "publish", "maven")
             implementationClass = "com.barrybecker4.gradle.plugins.Bb4PublishPlugin"
         }
@@ -60,8 +96,8 @@ gradlePlugin {
 
 repositories {
     mavenCentral()
-    maven { url = URI("https://oss.sonatype.org/content/groups/staging") }
-    maven { url = URI("https://oss.sonatype.org/content/repositories/snapshots") }
+    // Resolve bb4 and other SNAPSHOTs published via Central Portal (OSSRH EOL June 2025).
+    maven { url = URI("https://central.sonatype.com/repository/maven-snapshots/") }
 }
 
 dependencies {
@@ -73,11 +109,10 @@ val isReleaseVersion = !version.toString().endsWith("SNAPSHOT")
 publishing {
     repositories {
         maven {
-            // Defaults: s01 (Central migration). Override via bb4.ossrh.snapshotUrl / bb4.ossrh.releaseStagingUrl in gradle.properties.
-            val snapshotRepoUrl = (findProperty("bb4.ossrh.snapshotUrl") as String?)
-                ?: "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            val releasesRepoUrl = (findProperty("bb4.ossrh.releaseStagingUrl") as String?)
-                ?: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            // Central Publisher Portal (OSSRH sunset). See docs/publishing-sonatype.md
+            // Override via bb4.ossrh.snapshotUrl / bb4.ossrh.releaseStagingUrl (or bb4.central.*).
+            val snapshotRepoUrl = resolveBb4SnapshotRepoUrl()
+            val releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl()
             url = URI(if (version.toString().endsWith("SNAPSHOT")) snapshotRepoUrl else releasesRepoUrl)
             credentials {
                 username = providers.gradleProperty("ossrhToken").orNull
@@ -91,7 +126,9 @@ publishing {
     }
 }
 
-// `pluginMaven` is registered by java-gradle-plugin after ours; configure and sign there.
+// `pluginMaven` is registered by java-gradle-plugin after ours; configure POM there.
+// Only register signing for non-SNAPSHOT: if `signing.sign(...)` runs while `isRequired` is false
+// and no GPG key is configured, Gradle can fail evaluating the Sign task's onlyIf predicate.
 afterEvaluate {
     publishing.publications.named<MavenPublication>("pluginMaven") {
         groupId = "com.barrybecker4"
@@ -122,7 +159,9 @@ afterEvaluate {
             }
         }
     }
-    signing.sign(publishing.publications.getByName("pluginMaven"))
+    if (isReleaseVersion) {
+        signing.sign(publishing.publications)
+    }
 }
 
 signing {
@@ -130,7 +169,7 @@ signing {
 }
 
 tasks.register<Task>("publishArtifacts") {
-    description = "Publish artifacts to Sonatype repository"
+    description = "Publish artifacts to Central snapshot or staging repository"
     group = "publishing"
     dependsOn(tasks.named("publish"))
 }

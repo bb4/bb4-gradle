@@ -23,17 +23,14 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - Publishing: single **`pluginMaven`** publication for the `bb4-gradle` artifact (no duplicate overwrite with `mavenJava`).
-- OSSRH deploy defaults to **`s01.oss.sonatype.org`**; optional `bb4.ossrh.snapshotUrl` / `bb4.ossrh.releaseStagingUrl` in `gradle.properties` for legacy hosts.
+- Maven deploy defaults updated for **Central Publisher Portal** after [OSSRH sunset](https://central.sonatype.org/pages/ossrh-eol/): snapshots → `central.sonatype.com/repository/maven-snapshots/`, releases → `ossrh-staging-api.central.sonatype.com` staging deploy. Optional `bb4.ossrh.snapshotUrl` / `bb4.ossrh.releaseStagingUrl` in `gradle.properties`.
 
 ### Docs
 
-- [docs/publishing-sonatype.md](docs/publishing-sonatype.md) for snapshot/release deploy and 405 troubleshooting.
+- [docs/publishing-sonatype.md](docs/publishing-sonatype.md) — Portal user tokens, default URLs, manual upload note for `maven-publish`, 405/401 troubleshooting.
+- README rewritten for plugin consumption; snapshot repo URL for consumers.
+- [docs/migration-from-scripts.md](docs/migration-from-scripts.md) for 1.x → 2.x.
 - Scaladoc jar sources use scaladoc output (not javadoc) in publish plugin.
 - Dropped invalid publishing of raw `.asc` files as extra artifacts.
-
-### Docs
-
-- README rewritten for plugin consumption.
-- [docs/migration-from-scripts.md](docs/migration-from-scripts.md) for 1.x → 2.x.
 
 [2.0.0]: https://github.com/barrybecker4/bb4-gradle/compare/1.9.x...HEAD
