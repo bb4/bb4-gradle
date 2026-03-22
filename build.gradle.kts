@@ -104,7 +104,7 @@ dependencies {
     implementation(localGroovy())
 }
 
-val isReleaseVersion = !version.toString().endsWith("SNAPSHOT")
+val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")
 
 publishing {
     repositories {
@@ -113,7 +113,7 @@ publishing {
             // Override via bb4.ossrh.snapshotUrl / bb4.ossrh.releaseStagingUrl (or bb4.central.*).
             val snapshotRepoUrl = resolveBb4SnapshotRepoUrl()
             val releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl()
-            url = URI(if (version.toString().endsWith("SNAPSHOT")) snapshotRepoUrl else releasesRepoUrl)
+            url = URI(if (version.toString().endsWith("-SNAPSHOT")) snapshotRepoUrl else releasesRepoUrl)
             credentials {
                 username = providers.gradleProperty("ossrhToken").orNull
                     ?: System.getenv("OSSRH_USERNAME")

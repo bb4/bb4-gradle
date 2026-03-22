@@ -157,23 +157,32 @@ class Bb4PublishPlugin implements Plugin<Project> {
             }
         }
 
-        publishing.repositories.maven {
+        // Defer deploy URL and signing until after the project (and gradle.properties) have set
+        // version — it is often assigned after the plugins {} block in consuming builds.
+        project.afterEvaluate {
+            PublishingExtension evaluatedPublishing = project.extensions.getByType(PublishingExtension)
             def releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl(project)
             def snapshotRepoUrl = resolveBb4SnapshotRepoUrl(project)
-            url = project.version.toString().endsWith('SNAPSHOT') ? snapshotRepoUrl : releasesRepoUrl
-            credentials {
-                username = project.providers.gradleProperty('ossrhToken').orNull ?: System.getenv('OSSRH_USERNAME') ?: ''
-                password = project.providers.gradleProperty('ossrhTokenPassword').orNull ?: System.getenv('OSSRH_PASSWORD') ?: ''
-            }
-        }
+            def versionString = project.version.toString()
+            def isSnapshot = versionString.endsWith('-SNAPSHOT')
 
-        def isRelease = !project.version.toString().endsWith('SNAPSHOT')
-        project.signing {
-            required = isRelease
-            // Only register Sign tasks for releases; with required=false and no GPG key, Gradle can
-            // fail evaluating Sign.onlyIf ("Signing is required, or signatory is set").
-            if (isRelease) {
-                sign publishing.publications
+            evaluatedPublishing.repositories.maven {
+                name = 'bb4Sonatype'
+                url = project.uri(isSnapshot ? snapshotRepoUrl : releasesRepoUrl)
+                credentials {
+                    username = project.providers.gradleProperty('ossrhToken').orNull ?: System.getenv('OSSRH_USERNAME') ?: ''
+                    password = project.providers.gradleProperty('ossrhTokenPassword').orNull ?: System.getenv('OSSRH_PASSWORD') ?: ''
+                }
+            }
+
+            def isRelease = !isSnapshot
+            project.signing {
+                required = isRelease
+                // Only register Sign tasks for releases; with required=false and no GPG key, Gradle can
+                // fail evaluating Sign.onlyIf ("Signing is required, or signatory is set").
+                if (isRelease) {
+                    sign evaluatedPublishing.publications
+                }
             }
         }
 
