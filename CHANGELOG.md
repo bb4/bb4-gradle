@@ -22,6 +22,7 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- **`bb4.publish`:** use `signing.required = …` (property assignment) instead of deprecated `required { … }` for Gradle 8+ `SigningExtension`.
 - Publishing: single **`pluginMaven`** publication for the `bb4-gradle` artifact (no duplicate overwrite with `mavenJava`).
 - Maven deploy defaults updated for **Central Publisher Portal** after [OSSRH sunset](https://central.sonatype.org/pages/ossrh-eol/): snapshots → `central.sonatype.com/repository/maven-snapshots/`, releases → `ossrh-staging-api.central.sonatype.com` staging deploy. Optional `bb4.ossrh.snapshotUrl` / `bb4.ossrh.releaseStagingUrl` in `gradle.properties`.
 

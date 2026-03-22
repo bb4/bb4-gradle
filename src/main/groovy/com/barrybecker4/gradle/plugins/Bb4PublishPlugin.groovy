@@ -169,7 +169,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
 
         def isRelease = !project.version.toString().endsWith('SNAPSHOT')
         project.signing {
-            required { isRelease }
+            required = isRelease
             // Only register Sign tasks for releases; with required=false and no GPG key, Gradle can
             // fail evaluating Sign.onlyIf ("Signing is required, or signatory is set").
             if (isRelease) {
