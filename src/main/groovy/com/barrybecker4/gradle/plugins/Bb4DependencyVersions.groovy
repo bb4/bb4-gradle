@@ -10,6 +10,8 @@ final class Bb4DependencyVersions {
     static final String SCALA = '3.8.2'
     static final String VECMATH = '1.3.1'
     static final String SCALATEST = '3.2.19'
+    /** Keep in sync with SCALATEST (scalatestplus junit-5-13_3 uses the matching x.y.z.0 release). */
+    static final String SCALATEST_PLUS_JUNIT5 = '3.2.19.0'
     static final String JUNIT = '5.11.4'
     static final String SCALA_XML = '2.3.0'
     static final String PEGDOWN = '1.6.0'

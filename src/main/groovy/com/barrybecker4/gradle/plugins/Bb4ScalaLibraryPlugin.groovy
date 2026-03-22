@@ -50,7 +50,11 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
             }
         }
 
-        project.tasks.withType(Test).configureEach { it.useJUnitPlatform() }
+        project.tasks.withType(Test).configureEach { Test test ->
+            test.useJUnitPlatform {
+                includeEngines 'scalatest', 'junit-jupiter'
+            }
+        }
 
         project.tasks.register('copyToLib', Copy) { Copy task ->
             task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE

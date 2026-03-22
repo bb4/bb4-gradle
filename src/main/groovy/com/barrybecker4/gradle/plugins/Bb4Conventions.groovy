@@ -36,6 +36,7 @@ final class Bb4Conventions {
         dependencies.add('implementation', "java3d:vecmath:${Bb4DependencyVersions.VECMATH}")
         dependencies.add('testImplementation', "org.junit.jupiter:junit-jupiter:${Bb4DependencyVersions.JUNIT}")
         dependencies.add('testImplementation', "org.scalatest:scalatest_3:${Bb4DependencyVersions.SCALATEST}")
+        dependencies.add('testRuntimeOnly', "org.scalatestplus:junit-5-13_3:${Bb4DependencyVersions.SCALATEST_PLUS_JUNIT5}")
         dependencies.add('testRuntimeOnly', "org.scala-lang.modules:scala-xml_3:${Bb4DependencyVersions.SCALA_XML}")
         dependencies.add('testRuntimeOnly', "org.pegdown:pegdown:${Bb4DependencyVersions.PEGDOWN}")
         dependencies.add('testRuntimeOnly', "com.vladsch.flexmark:flexmark-all:${Bb4DependencyVersions.FLEXMARK}")
