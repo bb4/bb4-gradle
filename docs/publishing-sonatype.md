@@ -27,7 +27,15 @@ The deploy URL is correct, but the server is refusing the upload. Most often:
 
 ## Default repository URLs (this project)
 
-The **`com.barrybecker4.bb4.publish`** convention plugin sets the deploy repository URL in **`afterEvaluate`**, after your `build.gradle` / `build.gradle.kts` and merged `gradle.properties` have established **`version`**. If snapshot artifacts were going to the release staging URL, check that `version` ends with **`-SNAPSHOT`** (Maven/Gradle convention) and that nothing overwrites it too late; the plugin keys off that suffix.
+The **`com.barrybecker4.bb4.publish`** convention plugin sets the deployment repository URL 
+in **`afterEvaluate`**, after your `build.gradle` / `build.gradle.kts` and merged `gradle.properties` 
+have established **`version`**. Gradle resolves and applies plugins from the **`plugins { }` block before** 
+it runs the rest of the build script, so a **`version = ...` line placed below `plugins { }`** 
+is not visible during initial plugin application (the project version may still be **`unspecified`** 
+until that line runs). Deferring the deploy URL (and release-only signing) to **`afterEvaluate`** 
+avoids picking the wrong repository for **`-SNAPSHOT`** builds. 
+If snapshot artifacts were going to the release staging URL, check that `version` ends with **`-SNAPSHOT`** (Maven/Gradle convention) 
+and that nothing overwrites it too late; the plugin keys off that suffix.
 
 | Purpose | Default URL |
 |---------|----------------|
