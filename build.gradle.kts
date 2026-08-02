@@ -47,7 +47,7 @@ plugins {
 }
 
 group = "com.barrybecker4"
-version = "2.0-SNAPSHOT"
+version = "2.0.0"
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
 
@@ -126,35 +126,38 @@ publishing {
     }
 }
 
-// `pluginMaven` is registered by java-gradle-plugin after ours; configure POM there.
+// Publications (including plugin markers from java-gradle-plugin) are registered after
+// our script runs; configure Central-required POM metadata on every Maven publication.
 // Only register signing for non-SNAPSHOT: if `signing.sign(...)` runs while `isRequired` is false
 // and no GPG key is configured, Gradle can fail evaluating the Sign task's onlyIf predicate.
 afterEvaluate {
-    publishing.publications.named<MavenPublication>("pluginMaven") {
-        groupId = "com.barrybecker4"
-        artifactId = "bb4-gradle"
+    publishing.publications.withType<MavenPublication>().configureEach {
+        if (name == "pluginMaven") {
+            groupId = "com.barrybecker4"
+            artifactId = "bb4-gradle"
+        }
+        // Plugin marker POMs also need these or Central rejects the deployment.
         pom {
-            name = project.name
-            packaging = "jar"
-            description = project.description ?: project.name
-            url = "https://github.com/barrybecker4/${project.name}"
+            name.set(project.name)
+            description.set(project.description ?: project.name)
+            url.set("https://github.com/barrybecker4/${project.name}")
             scm {
-                url = "scm:git@github.com:barrybecker4/${project.name}.git"
-                connection = "scm:git@github.com:barrybecker4/${project.name}.git"
-                developerConnection = "scm:git@github.com:barrybecker4/${project.name}.git"
+                url.set("scm:git@github.com:barrybecker4/${project.name}.git")
+                connection.set("scm:git@github.com:barrybecker4/${project.name}.git")
+                developerConnection.set("scm:git@github.com:barrybecker4/${project.name}.git")
             }
             licenses {
                 license {
-                    name = "The MIT license"
-                    url = "http://www.opensource.org/licenses/MIT"
-                    distribution = "repo"
+                    name.set("The MIT license")
+                    url.set("http://www.opensource.org/licenses/MIT")
+                    distribution.set("repo")
                 }
             }
             developers {
                 developer {
-                    id = "barrybecker4"
-                    name = "Barry G. Becker"
-                    email = "barrybecker4@gmail.com"
+                    id.set("barrybecker4")
+                    name.set("Barry G. Becker")
+                    email.set("barrybecker4@gmail.com")
                 }
             }
         }
@@ -169,7 +172,10 @@ signing {
 }
 
 tasks.register<Task>("publishArtifacts") {
-    description = "Publish artifacts to Central snapshot or staging repository"
+    description =
+        "Publish artifacts to Central snapshot or staging repository. " +
+            "For releases, also POST …/manual/upload/defaultRepository/com.barrybecker4 " +
+            "(see docs/publishing-sonatype.md) or the Portal stays empty."
     group = "publishing"
     dependsOn(tasks.named("publish"))
 }

@@ -37,7 +37,8 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
+        // Only needed when consuming a -SNAPSHOT plugin build:
+        // maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 }
 ```
@@ -46,9 +47,9 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id 'com.barrybecker4.bb4.scala-library' version '2.0-SNAPSHOT' // or '2.0.0' after release
-    id 'com.barrybecker4.bb4.publish' version '2.0-SNAPSHOT'      // if publishing
-    id 'com.barrybecker4.bb4.application' version '2.0-SNAPSHOT' // if using app + deploy*
+    id 'com.barrybecker4.bb4.scala-library' version '2.0.0'
+    id 'com.barrybecker4.bb4.publish' version '2.0.0'      // if publishing
+    id 'com.barrybecker4.bb4.application' version '2.0.0' // if using app + deploy*
 }
 
 bb4 {
@@ -69,7 +70,9 @@ bb4 {
    - Replace `buildscript` / `apply from` with `plugins { }` as above.
    - Delete redundant `dependencies` / `compileOptions` that duplicate plugin defaults.
    - Run `./gradlew clean test jar` (and `distZip` / `run` for apps).
-   - If publishing: `./gradlew publishToSonatypeRepository` or your usual publish task; confirm signing with non-SNAPSHOT.
+   - If publishing a **release** (non-SNAPSHOT): after `./gradlew publish`, run the Staging API
+     **promote** curl and click **Publish** in the Central Portal — see
+     [docs/publishing-sonatype.md](../docs/publishing-sonatype.md). Same process as releasing bb4-gradle.
 3. Repeat for each bb4 repo (libraries first, then applications).
 
 ## Compatibility matrix (2.x)

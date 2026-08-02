@@ -1,6 +1,6 @@
 # bb4-gradle
 
-Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects. This repo replaces the old model (JAR of `apply from` Groovy scripts) with standard **`plugins { id("…") }`** IDs.
+Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 ## Requirements
 
@@ -34,8 +34,8 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        // Required while using 2.0-SNAPSHOT from Central snapshot repo (until a 2.0.x release is on Central):
-        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
+        // Only needed when consuming a -SNAPSHOT plugin build:
+        // maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 }
 ```
@@ -44,9 +44,9 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id 'com.barrybecker4.bb4.scala-library' version '2.0-SNAPSHOT' // or '2.0.0' when released
-    id 'com.barrybecker4.bb4.publish' version '2.0-SNAPSHOT'   // if this module publishes
-    id 'com.barrybecker4.bb4.application' version '2.0-SNAPSHOT' // optional, for apps
+    id 'com.barrybecker4.bb4.scala-library' version '2.0.0'
+    id 'com.barrybecker4.bb4.publish' version '2.0.0'   // if this module publishes
+    id 'com.barrybecker4.bb4.application' version '2.0.0' // optional, for apps
 }
 
 group = 'com.barrybecker4'
@@ -72,17 +72,30 @@ Source layout expected by `scala-library`:
 
 ## Publish this project (`bb4-gradle`)
 
-1. Set version in `build.gradle.kts` (release = no `-SNAPSHOT`).
-2. Configure credentials in `~/.gradle/gradle.properties` (or env vars): `ossrhToken`, `ossrhTokenPassword` (or `OSSRH_USERNAME` / `OSSRH_PASSWORD`).
-3. Run:
+Full runbook: [docs/publishing-sonatype.md](docs/publishing-sonatype.md). Short version:
 
-```bash
-./gradlew publishArtifacts
-```
+1. Set `version` in `build.gradle.kts` (release = **no** `-SNAPSHOT`).
+2. Credentials + GPG in `~/.gradle/gradle.properties`: `ossrhToken`, `ossrhTokenPassword`, signing props
+   (Central Portal **user token**, not legacy OSSRH).
+3. `./gradlew clean build` then `./gradlew publish`.
+4. **Required for releases:** promote staging into the Portal (same IP as the upload), or the
+   Deployments page stays empty:
 
-Snapshots use the **Central** snapshot repository; releases use the **OSSRH Staging API** deploy URL (signing required for non-SNAPSHOT). **OSSRH is EOL** — use a **Central Portal user token**, not legacy OSSRH credentials.
+   ```bash
+   TOKEN_USER=$(grep -E '^ossrhToken=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
+   TOKEN_PASS=$(grep -E '^ossrhTokenPassword=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
+   AUTH=$(printf '%s:%s' "$TOKEN_USER" "$TOKEN_PASS" | base64 | tr -d '\n')
+   curl -X POST \
+     "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/com.barrybecker4?publishing_type=user_managed" \
+     -H "Authorization: Bearer ${AUTH}" -H "accept: */*" -d ''
+   ```
 
-Details: [docs/publishing-sonatype.md](docs/publishing-sonatype.md).
+5. At [central.sonatype.com/publishing](https://central.sonatype.com/publishing), confirm **VALIDATED**, then **Publish**.
+6. After Central is live, commit/tag the release and bump `version` to the next `-SNAPSHOT`.
+
+Snapshots go to the Central snapshot repo (no promote step). Releases use the OSSRH Staging API
+deploy URL and **must** use the promote curl above. POM metadata (URL, license, SCM, developers)
+is applied to **all** publications including plugin markers — Central rejects marker-only omissions.
 
 ## Migration from script JAR (1.x)
 

@@ -1,92 +1,210 @@
 # Publishing bb4-gradle (Maven Central / Central Publisher Portal)
 
-**OSSRH was shut down** (June 30, 2025). All publishing goes through the **Central Publisher Portal** and the documented APIs. See [OSSRH Sunset](https://central.sonatype.org/pages/ossrh-eol/) and [Portal OSSRH Staging API](https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/).
+**OSSRH was shut down** (June 30, 2025). All publishing goes through the **Central Publisher Portal**
+and the [Portal OSSRH Staging API](https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/).
+See also [OSSRH Sunset](https://central.sonatype.org/pages/ossrh-eol/).
+
+## Release checklist (this repo)
+
+Do these steps **in order**. Skipping the promote step is the usual reason the Portal shows
+**“No Components Found”** after a successful `./gradlew publish`.
+
+1. **Bump version** in `build.gradle.kts` to a release (no `-SNAPSHOT`), e.g. `2.0.0`.
+2. **Update docs** (README examples, CHANGELOG date, migration snippets) to that version.
+3. **Build locally:** `./gradlew clean build`
+4. **Confirm credentials & GPG** in `~/.gradle/gradle.properties` (see [Credentials](#credentials-central-portal-user-token)).
+5. **Upload:** `./gradlew publish` (same as `publishArtifacts`).
+   - This only `PUT`s artifacts into the Staging API. It does **not** create a Portal deployment by itself.
+6. **Promote staging → Portal** (same machine / same public IP as step 5):
+
+   ```bash
+   # Read token from ~/.gradle/gradle.properties (never commit these values)
+   TOKEN_USER=$(grep -E '^ossrhToken=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
+   TOKEN_PASS=$(grep -E '^ossrhTokenPassword=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
+   AUTH=$(printf '%s:%s' "$TOKEN_USER" "$TOKEN_PASS" | base64 | tr -d '\n')
+
+   curl -sS -w "\nHTTP:%{http_code}\n" -X POST \
+     "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/com.barrybecker4?publishing_type=user_managed" \
+     -H "Authorization: Bearer ${AUTH}" \
+     -H "accept: */*" \
+     -d ''
+   ```
+
+   Expect **HTTP 200**. Use `publishing_type=automatic` only if you want the Portal to release
+   without a UI click (still requires a valid deployment).
+
+7. **Portal UI:** open [central.sonatype.com/publishing](https://central.sonatype.com/publishing).
+   - Find **com.barrybecker4 (via OSSRH Staging API)** (or similar).
+   - Status should become **VALIDATED**. If **FAILED**, see [Validation failures](#validation-failures-failed-deployment).
+   - Click **Publish** (unless you used `automatic`).
+8. **Wait ~10–30 minutes**, then confirm on
+   [search.maven.org](https://search.maven.org/artifact/com.barrybecker4/bb4-gradle) /
+   Central for `com.barrybecker4:bb4-gradle:<version>` and the plugin markers
+   (`com.barrybecker4.bb4.*.gradle.plugin`).
+9. **Commit & tag** the release version, then bump `version` to the next SNAPSHOT
+   (e.g. `2.1-SNAPSHOT`) for continued development.
+
+### Downstream bb4 libraries / apps
+
+Anything that uses Gradle `maven-publish` against the Staging API URL (including projects that apply
+`com.barrybecker4.bb4.publish`) needs the **same promote curl** after `./gradlew publish`, then
+Portal **Publish**, before the release is on Maven Central.
+
+---
 
 ## Credentials: Central Portal user token
 
 1. Sign in at [central.sonatype.com](https://central.sonatype.com/).
-2. Create a **User Token** (not an old OSSRH-only token).
+2. Create a **User Token** (Profile → User Token — not an old OSSRH-only token).
 3. In `~/.gradle/gradle.properties` (never commit):
 
    ```properties
    ossrhToken=<token username from Portal>
    ossrhTokenPassword=<token password from Portal>
+   signing.keyId=…
+   signing.password=…
+   signing.secretKeyRingFile=…
    ```
 
-   Or use `OSSRH_USERNAME` / `OSSRH_PASSWORD` environment variables.
+   Or use `OSSRH_USERNAME` / `OSSRH_PASSWORD` environment variables for the token pair.
 
-Publishing with an **old OSSRH token** typically yields **401**; wrong or legacy repository URLs often yield **405** or other errors.
+Publishing with an **old OSSRH token** typically yields **401**; wrong or legacy repository URLs often yield **405**.
 
 ### HTTP **403 Forbidden** on `central.sonatype.com/repository/maven-snapshots/`
 
-The deploy URL is correct, but the server is refusing the upload. Most often:
+1. **Enable SNAPSHOTs** for namespace `com.barrybecker4` under
+   [Publishing → Namespaces](https://central.sonatype.com/publishing/namespaces).
+   See [Publish Portal Snapshots](https://central.sonatype.org/publish/publish-portal-snapshots/).
+2. Confirm the **Portal user token** is what is in `ossrhToken` / `ossrhTokenPassword`.
+3. If still stuck: [403 FAQ](https://central.sonatype.org/faq/403-error) / [Central Support](mailto:central-support@sonatype.com).
 
-1. **SNAPSHOT publishing is not enabled for your namespace** (required for Central Portal snapshots). In [central.sonatype.com → Publishing → Namespaces](https://central.sonatype.com/publishing/namespaces), open your namespace’s menu and choose **“Enable SNAPSHOTs”**, then confirm. Until this is done, deploys to `maven-snapshots` typically return **403**. See [Publish Portal Snapshots](https://central.sonatype.org/publish/publish-portal-snapshots/).
-2. **User token** — username and password must be the **Central Portal user token** pair (Profile → User Token), copied exactly into `ossrhToken` / `ossrhTokenPassword`.
-3. If you still see **403** after enabling SNAPSHOTs and verifying the token, see Sonatype’s [403 FAQ](https://central.sonatype.org/faq/403-error) and contact [Central Support](mailto:central-support@sonatype.com) if needed.
+---
 
-## Default repository URLs (this project)
-
-The **`com.barrybecker4.bb4.publish`** convention plugin sets the deployment repository URL 
-in **`afterEvaluate`**, after your `build.gradle` / `build.gradle.kts` and merged `gradle.properties` 
-have established **`version`**. Gradle resolves and applies plugins from the **`plugins { }` block before** 
-it runs the rest of the build script, so a **`version = ...` line placed below `plugins { }`** 
-is not visible during initial plugin application (the project version may still be **`unspecified`** 
-until that line runs). Deferring the deploy URL (and release-only signing) to **`afterEvaluate`** 
-avoids picking the wrong repository for **`-SNAPSHOT`** builds. 
-If snapshot artifacts were going to the release staging URL, check that `version` ends with **`-SNAPSHOT`** (Maven/Gradle convention) 
-and that nothing overwrites it too late; the plugin keys off that suffix.
+## Default repository URLs
 
 | Purpose | Default URL |
 |---------|----------------|
 | **SNAPSHOT** deploy | `https://central.sonatype.com/repository/maven-snapshots/` |
 | **Release** staging (non-SNAPSHOT) | `https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/` |
 
-Override in `gradle.properties` if Sonatype documents a different endpoint for your account:
+Override in `gradle.properties` if Central Support documents a different endpoint:
 
 ```properties
 bb4.ossrh.snapshotUrl=https://central.sonatype.com/repository/maven-snapshots/
 bb4.ossrh.releaseStagingUrl=https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/
 ```
 
-You can also use `bb4.central.snapshotUrl` / `bb4.central.releaseStagingUrl` as aliases.
+Aliases: `bb4.central.snapshotUrl` / `bb4.central.releaseStagingUrl`.
 
-If you still have **old** values pointing at `oss.sonatype.org` or `s01.oss.sonatype.org` (often in `~/.gradle/gradle.properties`), bb4-gradle **ignores** them and uses the Central defaults, with a Gradle warning — those hosts return **405** after OSSRH EOL.
+Legacy `oss.sonatype.org` / `s01.oss.sonatype.org` overrides in `~/.gradle/gradle.properties` are
+**ignored** (with a Gradle warning); those hosts return **405** after OSSRH EOL.
 
-## Publish from this repo
+### Why URL choice is deferred (`afterEvaluate`)
 
-```bash
-./gradlew publish
-```
+Gradle applies `plugins { }` **before** the rest of the build script, so a `version = …` line below
+`plugins { }` is not visible during plugin application. Both this repo and `bb4.publish` set the
+deploy URL (and release-only signing) in **`afterEvaluate`** so `-SNAPSHOT` vs release picks the
+correct repository.
 
-Same as `./gradlew publishArtifacts`.
+- **SNAPSHOT** builds: signing usually skipped.
+- **Release** builds: signing **required**.
 
-- **SNAPSHOT** builds: signing is usually **skipped** (`isReleaseVersion = false`).
-- **Release** builds: signing is **required**; configure GPG per Gradle signing docs.
+---
 
-## Gradle `maven-publish` and the Portal (releases)
+## POM metadata (required for every publication)
 
-When using the **OSSRH Staging API** URL above, Gradle only performs Maven-style `PUT` uploads. For deployments to show in the [Central Publisher UI](https://central.sonatype.com/publishing), Sonatype may require an extra step after upload (same IP as the build), e.g.:
+Maven Central validates **every** published POM — including Gradle **plugin marker** POMs
+(`*.gradle.plugin`), not only `com.barrybecker4:bb4-gradle`.
 
-`POST .../manual/upload/defaultRepository/<namespace>`
+Each POM must include at least:
 
-where `<namespace>` is your group (e.g. `com.barrybecker4`). See **“Ensuring Deployment Visibility In The Central Publisher Portal”** in the [OSSRH Staging API guide](https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/).
+- project **URL**
+- **license**
+- **SCM** URL
+- **developers**
 
-Snapshot flows may differ; check the current **Snapshots** section under [Publishing](https://central.sonatype.org/publish/).
+In this repo, `build.gradle.kts` applies that metadata to **all** `MavenPublication`s via
+`publishing.publications.withType<MavenPublication>()`. Do not configure POM only on
+`pluginMaven`; marker-only omissions cause Portal status **FAILED** with errors like
+“Project URL is not defined / License information is missing / …”.
+
+Downstream projects using `bb4.publish` get POM metadata from `Bb4PublishPlugin.addPom`.
+
+---
+
+## Why Portal can show “No Components Found” after `publish`
+
+`./gradlew publish` only uploads files with Maven-style `PUT`s. The Staging API does **not** know
+when a deployment is “done” until you call:
+
+`POST /manual/upload/defaultRepository/com.barrybecker4`
+
+That call must use the **same public IP** as the upload (run it on the machine that just published).
+Only then does a deployment appear under [central.sonatype.com/publishing](https://central.sonatype.com/publishing).
+
+Official detail: [Ensuring Deployment Visibility](https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/#ensuring-deployment-visibility-in-the-central-publisher-portal).
+
+`publishing_type` options:
+
+| Value | Behavior |
+|-------|----------|
+| `user_managed` (default) | Portal UI: review → **Publish** or **Drop** |
+| `automatic` | Portal validates and releases if validation passes |
+| `portal_api` | Upload for status polling via Portal API |
+
+---
+
+## Validation failures (FAILED deployment)
+
+1. Read errors in the Portal UI, or:
+
+   ```bash
+   curl -sS "https://central.sonatype.com/api/v1/publisher/deployments" \
+     -H "Authorization: Bearer ${AUTH}" -H "accept: application/json"
+   ```
+
+2. **Drop** the failed Portal deployment:
+
+   ```bash
+   curl -sS -X DELETE \
+     "https://central.sonatype.com/api/v1/publisher/deployment/<deploymentId>" \
+     -H "Authorization: Bearer ${AUTH}"
+   ```
+
+3. List / drop leftover Staging API repositories (keys from search):
+
+   ```bash
+   curl -sS "https://ossrh-staging-api.central.sonatype.com/manual/search/repositories?ip=any&profile_id=com.barrybecker4" \
+     -H "Authorization: Bearer ${AUTH}"
+
+   # URL-encode the repository key, then:
+   curl -sS -X DELETE \
+     "https://ossrh-staging-api.central.sonatype.com/manual/drop/repository/<urlencoded-key>" \
+     -H "Authorization: Bearer ${AUTH}"
+   ```
+
+4. Fix POMs / artifacts, then **`./gradlew publish`** and the **promote curl** again.
+   You can reuse the same version if it never successfully released to Maven Central.
+
+Dropping on the Portal and dropping on the Staging API are **separate** services — clear both when
+retrying a failed release.
+
+---
 
 ## Verify artifacts
 
-- [central.sonatype.com/publishing](https://central.sonatype.com/publishing) after a successful deploy (and any required manual step).
-- Snapshot consumption: resolve from **`https://central.sonatype.com/repository/maven-snapshots/`** in `pluginManagement` until a release is on Maven Central.
+- Portal: [central.sonatype.com/publishing](https://central.sonatype.com/publishing) — state **VALIDATED**, then **Publish**.
+- Release consumption: Maven Central / `mavenCentral()` / Plugin Portal (e.g. `2.0.0`).
+- Snapshot consumption: add
+  `https://central.sonatype.com/repository/maven-snapshots/` in `pluginManagement` while using `-SNAPSHOT`.
 
-## Legacy hosts (not recommended)
-
-Old `oss.sonatype.org` / `s01.oss.sonatype.org` deploy URLs are **obsolete** for post-OSSRH migration. Use overrides only if Central Support instructs you to.
+---
 
 ## HTTP 403 / 405 / 401 troubleshooting
 
-1. **403 to maven-snapshots:** enable **Enable SNAPSHOTs** on your namespace (see above).
+1. **403 to maven-snapshots:** enable **Enable SNAPSHOTs** on the namespace (see above).
 2. Use a **Portal user token**, not a pre-2025 OSSRH-only token.
-3. Use the **default URLs** in this doc (or overrides Central documents).
+3. Use the **default URLs** in this doc (or overrides Central Support gives you).
 4. Confirm namespace **`com.barrybecker4`** under your Portal account.
-5. For release uploads, complete any **manual Portal / Staging API** step Sonatype requires after `gradle publish`.
+5. Empty Deployments after a green Gradle publish → you skipped the **promote curl**.
+6. **FAILED** validation → fix POMs (including plugin markers), drop, republish, promote again.

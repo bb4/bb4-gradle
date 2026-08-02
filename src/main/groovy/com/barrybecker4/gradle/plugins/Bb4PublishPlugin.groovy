@@ -188,7 +188,9 @@ class Bb4PublishPlugin implements Plugin<Project> {
 
         project.tasks.register('publishArtifacts') {
             group = 'publishing'
-            description = 'Publish artifacts to Central snapshot or staging repository'
+            description = 'Publish artifacts to Central snapshot or staging repository. ' +
+                'For releases, also POST …/manual/upload/defaultRepository/<namespace> ' +
+                '(see bb4-gradle docs/publishing-sonatype.md) or the Portal stays empty.'
             dependsOn 'publish'
         }
     }

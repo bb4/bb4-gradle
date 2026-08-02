@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-08-02
 
 ### Breaking
 
@@ -25,13 +25,13 @@ All notable changes to this project are documented in this file.
 - **`bb4.publish`:** use `signing.required = …` (property assignment) instead of deprecated `required { … }` for Gradle 8+ `SigningExtension`.
 - Publishing: single **`pluginMaven`** publication for the `bb4-gradle` artifact (no duplicate overwrite with `mavenJava`).
 - Maven deploy defaults updated for **Central Publisher Portal** after [OSSRH sunset](https://central.sonatype.org/pages/ossrh-eol/): snapshots → `central.sonatype.com/repository/maven-snapshots/`, releases → `ossrh-staging-api.central.sonatype.com` staging deploy. Optional `bb4.ossrh.snapshotUrl` / `bb4.ossrh.releaseStagingUrl` in `gradle.properties`.
+- Apply Central-required POM metadata (URL, license, SCM, developers) to **all** Maven publications, including Gradle **plugin marker** POMs — marker-only omissions caused Portal **FAILED** validation on first 2.0.0 upload.
 
 ### Docs
 
-- [docs/publishing-sonatype.md](docs/publishing-sonatype.md) — Portal user tokens, default URLs, manual upload note for `maven-publish`, 405/401 troubleshooting.
-- README rewritten for plugin consumption; snapshot repo URL for consumers.
+- [docs/publishing-sonatype.md](docs/publishing-sonatype.md) — end-to-end release checklist; required **`manual/upload`** promote after `gradle publish` (empty Deployments otherwise); POM / marker rules; drop-and-retry for FAILED deployments; 403/401/405 troubleshooting.
+- README publish section mirrors the promote + Portal **Publish** steps.
 - [docs/migration-from-scripts.md](docs/migration-from-scripts.md) for 1.x → 2.x.
 - Scaladoc jar sources use scaladoc output (not javadoc) in publish plugin.
 - Dropped invalid publishing of raw `.asc` files as extra artifacts.
-
 [2.0.0]: https://github.com/barrybecker4/bb4-gradle/compare/1.9.x...HEAD
