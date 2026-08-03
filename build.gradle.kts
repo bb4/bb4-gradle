@@ -47,7 +47,7 @@ plugins {
 }
 
 group = "com.barrybecker4"
-version = "2.0.0"
+version = "2.1-SNAPSHOT"
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
 
