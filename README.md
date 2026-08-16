@@ -1,5 +1,7 @@
 # bb4-gradle
 
+📊 [Build status for all bb4 projects](https://github.com/bb4)
+
 Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 ## Requirements
