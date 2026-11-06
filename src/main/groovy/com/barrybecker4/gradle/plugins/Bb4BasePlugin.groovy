@@ -14,7 +14,7 @@ class Bb4BasePlugin implements Plugin<Project> {
     void apply(Project project) {
         project.pluginManager.apply(JavaBasePlugin)
         project.extensions.getByType(JavaPluginExtension).toolchain { spec ->
-            spec.languageVersion.set(JavaLanguageVersion.of(21))
+            spec.languageVersion.set(JavaLanguageVersion.of(25))
         }
         Bb4Conventions.configureRepositories(project.repositories)
         Bb4Conventions.configureResolutionStrategy(project)
