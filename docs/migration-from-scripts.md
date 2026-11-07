@@ -88,25 +88,12 @@ bb4 {
 
 When `bb4.publish` is applied and you need to publish multiple artifacts from one project, configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
 
-```groovy
-plugins {
-    id 'com.barrybecker4.bb4.scala-library' version '2.1.0'
-    id 'com.barrybecker4.bb4.publish' version '2.1.0'
-}
+### Dependency Metadata
 
-version = '1.2.3-SNAPSHOT'
+Each `jarMap` publication automatically includes runtime dependencies in its POM:
+- **`implementation`** dependencies → `compile` scope (available at compile-time and runtime for consumers)
+- **`runtimeOnly`** dependencies → `runtime` scope (available only at runtime for consumers)
 
-bb4 {
-    jarMap.put('common', [
-        include: ['com/example/common/**']
-    ])
-    jarMap.put('ui', [
-        include: ['com/example/ui/**'],
-        exclude: ['**/*Test.class']
-    ])
-}
-```
+This ensures that consumers of split artifacts (e.g., `bb4-common`, `bb4-ui`) receive required external dependencies (Scala library, Guava, etc.) transitively without manual reconstruction.
 
-Each entry requires an `include` list of file patterns and optionally accepts `exclude` patterns. Publications are created with artifact IDs like `bb4-common`, `bb4-ui`, using the final `project.version`.
-
-**Legacy:** `ext.jarMap` set before `plugins {}` still works but is deprecated. Use `bb4 { jarMap.put(...) }` instead.
+**Recommendation for new projects**: Consider using Gradle's native multi-module structure instead of `jarMap` for better IDE support, clearer dependency boundaries, and simpler configuration. The `jarMap` feature exists for legacy compatibility with existing published artifacts.

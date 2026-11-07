@@ -172,7 +172,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                             pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
                         }
                         pub.artifact project.tasks.named("${key}SourcesJar", Jar)
-                        addPom(pub, project)
+                        addPom(pub, project, true)
                     }
                 }
             }
@@ -235,6 +235,23 @@ class Bb4PublishPlugin implements Plugin<Project> {
     }
 
     private static void addPom(MavenPublication pub, Project project) {
+        addPom(pub, project, false)
+    }
+
+    /**
+     * Add POM metadata to a publication.
+     * @param pub The Maven publication to configure
+     * @param project The project being published
+     * @param includeRuntimeDependencies If true, explicitly add runtime dependencies to the POM.
+     *        Used for multi-jar publications that don't use components and need dependency metadata.
+     *        
+     *        For jarMap publications, each split artifact contains a filtered subset of the project's
+     *        compiled classes but shares the same dependency graph. Without explicit dependency metadata,
+     *        consumers would need to manually reconstruct transitive dependencies (Scala runtime, external
+     *        libraries, etc.). This adds implementation deps as compile scope and runtimeOnly deps as
+     *        runtime scope, matching the standard component publication behavior.
+     */
+    private static void addPom(MavenPublication pub, Project project, boolean includeRuntimeDependencies) {
         pub.pom {
             name = project.name
             packaging = 'jar'
@@ -257,6 +274,47 @@ class Bb4PublishPlugin implements Plugin<Project> {
                     id = 'barrybecker4'
                     name = 'Barry G. Becker'
                     email = 'barrybecker4@gmail.com'
+                }
+            }
+
+            if (includeRuntimeDependencies) {
+                withXml {
+                    def dependenciesNode = asNode().appendNode('dependencies')
+                    
+                    // Include both implementation and runtimeOnly dependencies
+                    // Map them to compile scope so consumers get them at compile time
+                    // (matching the behavior of pub.from components.java for implementation deps)
+                    def seenDeps = new HashSet()
+                    
+                    // Add implementation dependencies (compile+runtime for consumers)
+                    project.configurations.implementation.allDependencies.each { dep ->
+                        if (dep.group != null && dep.name != null && dep.name != 'unspecified') {
+                            def key = "${dep.group}:${dep.name}"
+                            if (!seenDeps.contains(key)) {
+                                seenDeps.add(key)
+                                def dependencyNode = dependenciesNode.appendNode('dependency')
+                                dependencyNode.appendNode('groupId', dep.group)
+                                dependencyNode.appendNode('artifactId', dep.name)
+                                dependencyNode.appendNode('version', dep.version)
+                                dependencyNode.appendNode('scope', 'compile')
+                            }
+                        }
+                    }
+                    
+                    // Add runtimeOnly dependencies (runtime scope for consumers)
+                    project.configurations.runtimeOnly.allDependencies.each { dep ->
+                        if (dep.group != null && dep.name != null && dep.name != 'unspecified') {
+                            def key = "${dep.group}:${dep.name}"
+                            if (!seenDeps.contains(key)) {
+                                seenDeps.add(key)
+                                def dependencyNode = dependenciesNode.appendNode('dependency')
+                                dependencyNode.appendNode('groupId', dep.group)
+                                dependencyNode.appendNode('artifactId', dep.name)
+                                dependencyNode.appendNode('version', dep.version)
+                                dependencyNode.appendNode('scope', 'runtime')
+                            }
+                        }
+                    }
                 }
             }
         }
