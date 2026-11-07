@@ -68,11 +68,10 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
 
         project.tasks.register('deployZip', Copy) { Copy copy ->
             copy.group = 'distribution'
-            copy.dependsOn project.tasks.named('build')
             copy.description = 'Copy zip of jars and run scripts'
-            copy.from 'build/distributions'
+            def distZipTask = project.tasks.named('distZip')
+            copy.from distZipTask.map { it.archiveFile }
             copy.into projectDistributionDir
-            copy.include 'bb4-*.zip'
             copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
 
@@ -96,14 +95,6 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             }
         }
 
-        appExt.applicationDistribution.from('build/libs') {
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            exclude '*.asc'
-            exclude '*-sources.jar'
-            exclude '*-scaladoc.jar'
-            exclude '*-javadoc.jar'
-            into 'lib'
-        }
     }
 
     /** Gradle 8.14+ exposes script locations as {@link File}; older versions used a lazy {@code RegularFileProperty}. */
