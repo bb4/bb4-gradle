@@ -36,9 +36,12 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             }
         }
 
-        def bb4 = project.extensions.findByType(Bb4Extension)
         def appExt = project.extensions.getByName('application')
-        if (bb4 != null) {
+        
+        // Wire bb4.mainClass to application.mainClass when bb4.scala-library is applied,
+        // regardless of plugin application order
+        project.pluginManager.withPlugin('com.barrybecker4.bb4.scala-library') {
+            def bb4 = project.extensions.getByType(Bb4Extension)
             appExt.mainClass.set(bb4.mainClass)
         }
 

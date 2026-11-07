@@ -102,6 +102,13 @@ repositories {
 
 dependencies {
     implementation(localGroovy())
+    testImplementation(gradleTestKit())
+    testImplementation("org.spockframework:spock-core:2.3-groovy-4.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")
