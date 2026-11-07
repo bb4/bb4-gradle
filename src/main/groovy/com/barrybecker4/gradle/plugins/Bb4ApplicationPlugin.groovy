@@ -10,6 +10,7 @@ import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.application.tasks.CreateStartScripts
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 import java.io.File
 import java.util.regex.Matcher
@@ -27,6 +28,13 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
         project.extensions.extraProperties.set('distributionDir', distributionDir)
         project.extensions.extraProperties.set('projectDistributionDir', projectDistributionDir)
         project.extensions.extraProperties.set('schemaDistributionDir', schemaDistributionDir)
+
+        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME).configure { clean ->
+            clean.doFirst {
+                project.delete project.file(projectDistributionDir)
+                project.delete project.file(schemaDistributionDir)
+            }
+        }
 
         def bb4 = project.extensions.findByType(Bb4Extension)
         def appExt = project.extensions.getByName('application')
@@ -68,11 +76,10 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
 
         project.tasks.register('deployZip', Copy) { Copy copy ->
             copy.group = 'distribution'
-            copy.dependsOn project.tasks.named('build')
             copy.description = 'Copy zip of jars and run scripts'
-            copy.from 'build/distributions'
+            def distZipTask = project.tasks.named('distZip')
+            copy.from distZipTask.map { it.archiveFile }
             copy.into projectDistributionDir
-            copy.include 'bb4-*.zip'
             copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
 
@@ -96,14 +103,6 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             }
         }
 
-        appExt.applicationDistribution.from('build/libs') {
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            exclude '*.asc'
-            exclude '*-sources.jar'
-            exclude '*-scaladoc.jar'
-            exclude '*-javadoc.jar'
-            into 'lib'
-        }
     }
 
     /** Gradle 8.14+ exposes script locations as {@link File}; older versions used a lazy {@code RegularFileProperty}. */

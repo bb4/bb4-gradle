@@ -8,22 +8,41 @@ import org.gradle.api.artifacts.dsl.RepositoryHandler
 
 final class Bb4Conventions {
 
+    /**
+     * Configure repositories for bb4 projects.
+     * - mavenCentral(): all stable releases (JUnit, ScalaTest, Scala, vecmath, etc.)
+     * - Central snapshots: bb4 SNAPSHOTs and upstream library SNAPSHOTs published via Central Portal.
+     *   Restricted to com.barrybecker4 and org.scalatest to limit scope; extend if other upstream
+     *   libraries publish SNAPSHOTs here.
+     */
     static void configureRepositories(RepositoryHandler repositories) {
         repositories.mavenCentral()
-        repositories.maven { url = 'https://repo1.maven.org/maven2/' }
-        repositories.maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
-        repositories.maven { url = 'https://repository.jboss.org/nexus/content/repositories/thirdparty-releases' }
-    }
-
-    static void configureResolutionStrategy(Project project) {
-        project.configurations.configureEach { cfg ->
-            cfg.resolutionStrategy {
-                if (!project.hasProperty('debugDeps')) {
-                    cacheDynamicVersionsFor 0, 'seconds'
-                    cacheChangingModulesFor 0, 'seconds'
-                }
+        repositories.maven {
+            url = 'https://central.sonatype.com/repository/maven-snapshots/'
+            mavenContent {
+                includeGroup 'com.barrybecker4'
+                includeGroup 'org.scalatest'
             }
         }
+    }
+
+    /**
+     * Configure resolution strategy for bb4 projects.
+     * Uses Gradle's normal cache behavior (24 hours for dynamic versions, default changing module cache).
+     * For explicit SNAPSHOT freshness during CI upstream-update workflows, use --refresh-dependencies
+     * (already configured in .github/workflows/ci.yml for repository_dispatch events).
+     */
+    static void configureResolutionStrategy(Project project) {
+        // Gradle defaults:
+        // - cacheDynamicVersionsFor: 24 hours
+        // - cacheChangingModulesFor: 24 hours
+        // These are reasonable for local development and most CI builds.
+        // The previous zero-second cache disabled all caching for changing modules
+        // and dynamic versions, causing repeated remote metadata checks.
+        //
+        // For bb4's snapshot cascade workflow (upstream library updates trigger downstream builds),
+        // CI explicitly passes --refresh-dependencies on repository_dispatch events, which is
+        // the recommended approach for forcing fresh resolution when needed.
     }
 
     static void configureOssrhDefaults(Project project) {

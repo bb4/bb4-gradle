@@ -8,15 +8,32 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 | Item | Version |
 |------|---------|
-| Gradle (wrapper) | **8.14.x** (see `gradle/wrapper/gradle-wrapper.properties`) |
-| Java toolchain | **21** (enforced by `com.barrybecker4.bb4.base`) |
+| Gradle (wrapper) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
+| Java toolchain | **25** (enforced by `com.barrybecker4.bb4.base`) |
 | Scala (default in plugins) | **3.10.0** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+
+### Java Toolchain and Bytecode Compatibility
+
+The **Java 25 toolchain** requirement means:
+
+1. **This plugin** (`bb4-gradle`) is compiled with Java 25, and requires a Gradle daemon running on Java 25 or later to execute.
+2. **Consumer projects** that apply `com.barrybecker4.bb4.base` or `com.barrybecker4.bb4.scala-library` will default to Java 25 toolchains for compilation.
+
+**Bytecode target**: By default, consumer projects produce **Java 25 bytecode**. If your downstream consumers must run on older JVMs, you can override the bytecode/API level using `--release`:
+
+```groovy
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21  // or 17, etc.
+}
+```
+
+For Scala projects targeting older runtimes, configure the Scala compiler's `-release` or `-target` flag similarly. Note that using a newer toolchain with an older release target is the recommended approach for forward compatibility while maintaining backward runtime support.
 
 ## Published plugins
 
 | Plugin ID | Purpose |
 |-----------|---------|
-| `com.barrybecker4.bb4.base` | Java 21 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
+| `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks |
@@ -63,7 +80,7 @@ bb4 {
 
 Apply only what you need:
 
-- **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 21 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
+- **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 25 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
 - **Publish to Sonatype** → add `com.barrybecker4.bb4.publish`.
 - **CLI / dist / deploy** → add `com.barrybecker4.bb4.application`.
 
