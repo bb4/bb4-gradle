@@ -8,7 +8,7 @@
 | `apply from: …getResource('bb4.gradle')` | `id("com.barrybecker4.bb4.scala-library")` (and optionally `bb4.base` is applied inside scala-library) |
 | `apply from: …'bb4-publish.gradle'` | `id("com.barrybecker4.bb4.publish")` |
 | `apply from: …'bb4-deploy.gradle'` | `id("com.barrybecker4.bb4.application")` |
-| Java 17 / Scala 3.3.x defaults | Java **25** / Scala **3.8.2** defaults (override via `bb4 { scalaVersion.set("…") }`) |
+| Java 17 / Scala 3.3.x defaults | Java **25** / Scala **3.10.0** defaults (override via `bb4 { scalaVersion.set("…") }`) |
 
 ## Before (1.x)
 
@@ -79,8 +79,8 @@ bb4 {
 
 | bb4-gradle | Gradle | Java | Scala (default) |
 |-------------|--------|------|-----------------|
-| 2.0.x | 8.14+ | 21 | 3.8.2 |
-| 2.1.x | 9.1+ | 25 | 3.8.2 |
+| 2.0.x | 8.14+ | 21 | 3.10.0 |
+| 2.1.x | 9.1+ | 25 | 3.10. |
 
 **Note on Java 25**: The Java 25 toolchain requirement applies both to compiling `bb4-gradle` itself and to the Gradle daemon JVM running the plugins. Consumer projects default to Java 25 bytecode unless you explicitly set a `--release` flag to target older JVMs.
 
