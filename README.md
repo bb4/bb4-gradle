@@ -76,7 +76,11 @@ version = '1.0-SNAPSHOT'
 bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
     mainClass.set('com.example.Main')    // optional jar manifest / application main
-    // scalaVersion.set('3.10.0')       // optional override
+    // scalaVersion.set('3.10.0')        // optional override
+    
+    // Optional: multi-artifact publishing (when using bb4.publish)
+    // jarMap.put('common', [include: ['com/example/common/**']])
+    // jarMap.put('ui', [include: ['com/example/ui/**'], exclude: ['**/*Test.class']])
 }
 ```
 
