@@ -5,13 +5,17 @@ package com.barrybecker4.gradle.plugins
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.scala.ScalaDoc
+
+import javax.inject.Inject
 
 class Bb4PublishPlugin implements Plugin<Project> {
 
@@ -21,28 +25,29 @@ class Bb4PublishPlugin implements Plugin<Project> {
         project.pluginManager.apply('signing')
         Bb4Conventions.configureOssrhDefaults(project)
 
-        def main = project.extensions.getByType(SourceSetContainer).named('main').get()
+        // Wait for java-library or java plugin to provide the main source set
+        project.pluginManager.withPlugin('java') {
+            configurePublishing(project)
+        }
+    }
+
+    private void configurePublishing(Project project) {
+        def main = project.extensions.getByType(SourceSetContainer).named('main')
 
         def javadocTask = project.tasks.named('javadoc', Javadoc)
-        def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
 
         javadocTask.configure { Javadoc javadoc ->
-            javadoc.doLast {
-                def dest = javadocDestination(javadoc)
-                project.copy {
-                    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    from main.allSource
-                    into dest
-                    include '**/package.png'
-                }
-            }
+            def copyAction = project.objects.newInstance(CopyPackageImages)
+            copyAction.sourceFiles.from(main.map { it.allSource })
+            copyAction.destinationDir.set(javadoc.destinationDirectory)
+            javadoc.doLast(copyAction)
         }
 
         def sourcesJar = project.tasks.register('sourcesJar', Jar) { Jar jar ->
             jar.description = 'Source jar for Sonatype'
             jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             jar.archiveClassifier.set('sources')
-            jar.from main.allSource
+            jar.from main.map { it.allSource }
             jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
         }
 
@@ -54,12 +59,18 @@ class Bb4PublishPlugin implements Plugin<Project> {
             jar.dependsOn javadocTask
         }
 
-        def scaladocJar = project.tasks.register('scaladocJar', Jar) { Jar jar ->
-            jar.description = 'Scaladoc jar for Sonatype'
-            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            jar.archiveClassifier.set('scaladoc')
-            jar.from scaladocTask.map { scaladocDestination(it) }
-            jar.dependsOn scaladocTask
+        // Register scaladocJar only when the scala plugin is applied
+        // Store the task provider in a holder that can be accessed later
+        def scaladocJarHolder = [taskProvider: null]
+        project.pluginManager.withPlugin('scala') {
+            def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+            scaladocJarHolder.taskProvider = project.tasks.register('scaladocJar', Jar) { Jar jar ->
+                jar.description = 'Scaladoc jar for Sonatype'
+                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                jar.archiveClassifier.set('scaladoc')
+                jar.from scaladocTask.map { scaladocDestination(it) }
+                jar.dependsOn scaladocTask
+            }
         }
 
         def jarMap = readJarMap(project)
@@ -70,14 +81,18 @@ class Bb4PublishPlugin implements Plugin<Project> {
             project.tasks.named('jar', Jar).configure { it.enabled = false }
             sourcesJar.configure { it.enabled = false }
             javadocJar.configure { it.enabled = false }
-            scaladocJar.configure { it.enabled = false }
+            if (scaladocJarHolder.taskProvider != null) {
+                scaladocJarHolder.taskProvider.configure { it.enabled = false }
+            }
         }
 
         if (multiJar) {
             project.tasks.named('jar', Jar).configure { it.enabled = false }
             sourcesJar.configure { it.enabled = false }
             javadocJar.configure { it.enabled = false }
-            scaladocJar.configure { it.enabled = false }
+            if (scaladocJarHolder.taskProvider != null) {
+                scaladocJarHolder.taskProvider.configure { it.enabled = false }
+            }
 
             jarMap.each { String key, Map spec ->
                 def includes = spec['include'] as Iterable<?> ?: []
@@ -86,7 +101,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                 project.tasks.register("${key}Jar", Jar) { Jar jar ->
                     jar.archiveBaseName.set("bb4-$key")
                     jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.from main.output
+                    jar.from main.map { it.output }
                     includes.each { jar.include it.toString() }
                     excludes.each { jar.exclude it }
                     jar.manifest {
@@ -108,21 +123,25 @@ class Bb4PublishPlugin implements Plugin<Project> {
                     includes.each { jar.include it.toString() }
                     jar.dependsOn javadocTask
                 }
-                project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
-                    jar.description = "Scaladoc jar for $key"
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.archiveClassifier.set('scaladoc')
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.from scaladocTask.map { scaladocDestination(it) }
-                    includes.each { jar.include it.toString() }
-                    jar.dependsOn scaladocTask
+                // Register Scaladoc jar for multi-jar when scala plugin is present
+                project.pluginManager.withPlugin('scala') {
+                    def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+                    project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
+                        jar.description = "Scaladoc jar for $key"
+                        jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                        jar.archiveClassifier.set('scaladoc')
+                        jar.archiveBaseName.set("bb4-$key")
+                        jar.from scaladocTask.map { scaladocDestination(it) }
+                        includes.each { jar.include it.toString() }
+                        jar.dependsOn scaladocTask
+                    }
                 }
                 project.tasks.register("${key}SourcesJar", Jar) { Jar jar ->
                     jar.description = "Sources jar for $key"
                     jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                     jar.archiveClassifier.set('sources')
                     jar.archiveBaseName.set("bb4-$key")
-                    jar.from main.allSource
+                    jar.from main.map { it.allSource }
                     includes.each { jar.include it.toString() }
                     excludes.each { jar.exclude it }
                     jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
@@ -132,27 +151,36 @@ class Bb4PublishPlugin implements Plugin<Project> {
 
         PublishingExtension publishing = project.extensions.getByType(PublishingExtension)
 
-        if (!multiJar) {
-            publishing.publications.create('mavenJava', MavenPublication) { MavenPublication pub ->
-                pub.artifactId = project.name
-                pub.groupId = 'com.barrybecker4'
-                pub.from project.components.java
-                pub.artifact sourcesJar
-                pub.artifact javadocJar
-                pub.artifact scaladocJar
-                addPom(pub, project)
-            }
-        } else {
-            jarMap.each { String key, Map ignored ->
-                publishing.publications.create("maven${key.capitalize()}", MavenPublication) { MavenPublication pub ->
+        // Use afterEvaluate to determine if Scala plugin is present and add scaladoc to publications
+        project.afterEvaluate {
+            def hasScala = project.plugins.hasPlugin('scala')
+            
+            if (!multiJar) {
+                publishing.publications.create('mavenJava', MavenPublication) { MavenPublication pub ->
+                    pub.artifactId = project.name
                     pub.groupId = 'com.barrybecker4'
-                    pub.artifactId = "bb4-$key"
-                    pub.version = project.version.toString()
-                    pub.artifact project.tasks.named("${key}Jar", Jar)
-                    pub.artifact project.tasks.named("${key}JavadocJar", Jar)
-                    pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
-                    pub.artifact project.tasks.named("${key}SourcesJar", Jar)
+                    pub.from project.components.java
+                    pub.artifact sourcesJar
+                    pub.artifact javadocJar
+                    if (hasScala && scaladocJarHolder.taskProvider != null) {
+                        pub.artifact scaladocJarHolder.taskProvider
+                    }
                     addPom(pub, project)
+                }
+            } else {
+                jarMap.each { String key, Map ignored ->
+                    publishing.publications.create("maven${key.capitalize()}", MavenPublication) { MavenPublication pub ->
+                        pub.groupId = 'com.barrybecker4'
+                        pub.artifactId = "bb4-$key"
+                        pub.version = project.version.toString()
+                        pub.artifact project.tasks.named("${key}Jar", Jar)
+                        pub.artifact project.tasks.named("${key}JavadocJar", Jar)
+                        if (hasScala) {
+                            pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
+                        }
+                        pub.artifact project.tasks.named("${key}SourcesJar", Jar)
+                        addPom(pub, project)
+                    }
                 }
             }
         }
@@ -295,5 +323,31 @@ class Bb4PublishPlugin implements Plugin<Project> {
             }
         }
         return out
+    }
+
+    /**
+     * Task action that copies package.png images from source directories to javadoc output.
+     * Uses injected FileSystemOperations instead of capturing Project at execution time.
+     */
+    static abstract class CopyPackageImages implements org.gradle.api.Action<org.gradle.api.Task> {
+        @Inject
+        abstract FileSystemOperations getFileSystemOperations()
+
+        abstract org.gradle.api.file.ConfigurableFileCollection getSourceFiles()
+
+        abstract org.gradle.api.file.DirectoryProperty getDestinationDir()
+
+        @Override
+        void execute(org.gradle.api.Task task) {
+            if (!destinationDir.present) {
+                return
+            }
+            fileSystemOperations.copy {
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                from sourceFiles
+                into destinationDir
+                include '**/package.png'
+            }
+        }
     }
 }

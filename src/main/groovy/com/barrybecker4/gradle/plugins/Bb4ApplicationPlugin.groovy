@@ -10,6 +10,7 @@ import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.application.tasks.CreateStartScripts
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 import java.io.File
 import java.util.regex.Matcher
@@ -28,9 +29,19 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
         project.extensions.extraProperties.set('projectDistributionDir', projectDistributionDir)
         project.extensions.extraProperties.set('schemaDistributionDir', schemaDistributionDir)
 
-        def bb4 = project.extensions.findByType(Bb4Extension)
+        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME).configure { clean ->
+            clean.doFirst {
+                project.delete project.file(projectDistributionDir)
+                project.delete project.file(schemaDistributionDir)
+            }
+        }
+
         def appExt = project.extensions.getByName('application')
-        if (bb4 != null) {
+        
+        // Wire bb4.mainClass to application.mainClass when bb4.scala-library is applied,
+        // regardless of plugin application order
+        project.pluginManager.withPlugin('com.barrybecker4.bb4.scala-library') {
+            def bb4 = project.extensions.getByType(Bb4Extension)
             appExt.mainClass.set(bb4.mainClass)
         }
 
@@ -43,14 +54,31 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             copy.group = 'distribution'
             copy.description = "Copy html related files to $projectDistributionDir"
             copy.into projectDistributionDir
+
+            def versionProvider = project.provider { project.version.toString() }
+            def appMapProvider = project.provider {
+                def raw = project.findProperty('appMap')
+                (raw instanceof Map) ? raw as Map<String, Map> : Collections.emptyMap()
+            }
+
+            copy.inputs.property('versionString', versionProvider)
+            copy.inputs.property('appMap', appMapProvider)
+
+            // Resolve values during configuration and capture them as plain objects
+            def versionValue = versionProvider.get()
+            def appMapValue = appMapProvider.get()
+
             copy.from('source/html') {
                 include '**/*.*'
                 exclude '**/*.png', '**/*.jpg', '**/*.PNG', '**/*.JPG'
-                filter ReplaceTokens, tokens: [version: project.version.toString()]
+                filter ReplaceTokens, tokens: [version: versionValue]
                 filter { String line ->
-                    line.contains('@table_rows@')
-                        ? createTableRows(project, line.substring(0, line.indexOf('@table_rows@'))) ?: line
-                        : line
+                    if (line.contains('@table_rows@')) {
+                        def indent = line.substring(0, line.indexOf('@table_rows@'))
+                        def rows = Bb4ApplicationPlugin.createTableRows(appMapValue, indent)
+                        return rows ?: line
+                    }
+                    return line
                 }
             }
             copy.from('source/html') {
@@ -68,11 +96,10 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
 
         project.tasks.register('deployZip', Copy) { Copy copy ->
             copy.group = 'distribution'
-            copy.dependsOn project.tasks.named('build')
             copy.description = 'Copy zip of jars and run scripts'
-            copy.from 'build/distributions'
+            def distZipTask = project.tasks.named('distZip')
+            copy.from distZipTask.map { it.archiveFile }
             copy.into projectDistributionDir
-            copy.include 'bb4-*.zip'
             copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
 
@@ -96,14 +123,6 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             }
         }
 
-        appExt.applicationDistribution.from('build/libs') {
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            exclude '*.asc'
-            exclude '*-sources.jar'
-            exclude '*-scaladoc.jar'
-            exclude '*-javadoc.jar'
-            into 'lib'
-        }
     }
 
     /** Gradle 8.14+ exposes script locations as {@link File}; older versions used a lazy {@code RegularFileProperty}. */
@@ -115,16 +134,12 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
         return located instanceof File ? located as File : located.asFile as File
     }
 
-    private static String createTableRows(Project project, String indent) {
-        if (!project.hasProperty('appMap')) {
-            return null
-        }
-        def appMap = project.property('appMap')
-        if (!(appMap instanceof Map)) {
+    private static String createTableRows(Map<String, Map> appMapValue, String indent) {
+        if (appMapValue == null || appMapValue.isEmpty()) {
             return null
         }
         def rows = new StringBuilder()
-        appMap.each { String key, Map value ->
+        appMapValue.each { String key, Map value ->
             def imageName = value.containsKey('imageName') ? value.imageName.toString() : "${key}.jpg"
             def deploy = value.containsKey('deploy') ? value.deploy as boolean : true
             if (deploy) {
