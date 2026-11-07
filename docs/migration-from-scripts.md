@@ -86,6 +86,27 @@ bb4 {
 
 ## `jarMap` (multi-jar publications)
 
-Still supported when `bb4.publish` is applied: set `ext.jarMap` (or `jarMap` in `gradle.properties` / extension) **before** tasks resolve, same shape as 1.x (keys → maps with `include`, optional `exclude`). Prefer doing this in a `gradle.afterProject` or early in `build.gradle` so publications are created consistently.
+When `bb4.publish` is applied and you need to publish multiple artifacts from one project, configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
 
-If you hit ordering issues, open an issue or split modules instead of `jarMap` for long-term simplicity.
+```groovy
+plugins {
+    id 'com.barrybecker4.bb4.scala-library' version '2.1.0'
+    id 'com.barrybecker4.bb4.publish' version '2.1.0'
+}
+
+version = '1.2.3-SNAPSHOT'
+
+bb4 {
+    jarMap.put('common', [
+        include: ['com/example/common/**']
+    ])
+    jarMap.put('ui', [
+        include: ['com/example/ui/**'],
+        exclude: ['**/*Test.class']
+    ])
+}
+```
+
+Each entry requires an `include` list of file patterns and optionally accepts `exclude` patterns. Publications are created with artifact IDs like `bb4-common`, `bb4-ui`, using the final `project.version`.
+
+**Legacy:** `ext.jarMap` set before `plugins {}` still works but is deprecated. Use `bb4 { jarMap.put(...) }` instead.

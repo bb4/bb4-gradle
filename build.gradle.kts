@@ -100,6 +100,23 @@ repositories {
     maven { url = URI("https://central.sonatype.com/repository/maven-snapshots/") }
 }
 
+testing {
+    suites {
+        val functionalTest by registering(JvmTestSuite::class) {
+            useSpock("2.3-groovy-4.0")
+            dependencies {
+                implementation(project())
+            }
+        }
+    }
+}
+
+gradlePlugin.testSourceSets(sourceSets["functionalTest"], sourceSets["test"])
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("functionalTest"))
+}
+
 dependencies {
     implementation(localGroovy())
     testImplementation(gradleTestKit())
