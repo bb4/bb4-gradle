@@ -261,14 +261,10 @@ class Bb4PluginsFunctionalTest {
             group = 'com.test'
             version = '1.0-SNAPSHOT'
             
-            ext.jarMap = [
-                common: [
-                    include: ['com/test/common/**']
-                ],
-                utils: [
-                    include: ['com/test/utils/**']
-                ]
-            ]
+            bb4 {
+                jarMap.put('common', [include: ['com/test/common/**']])
+                jarMap.put('utils', [include: ['com/test/utils/**']])
+            }
             
             publishing {
                 repositories {
@@ -289,10 +285,12 @@ class Bb4PluginsFunctionalTest {
             public class Utils {}
         '''
 
-        def result = runGradle('assemble')
+        def result = runGradle('commonJar', 'utilsJar')
 
-        assertEquals(TaskOutcome.SUCCESS, result.task(':assemble').outcome)
-        assertTrue(Files.exists(testProjectDir.resolve('build/classes')))
+        assertTrue(result.task(':commonJar').outcome in [TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE])
+        assertTrue(result.task(':utilsJar').outcome in [TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE])
+        assertTrue(Files.exists(testProjectDir.resolve('build/libs/bb4-common-1.0-SNAPSHOT.jar')))
+        assertTrue(Files.exists(testProjectDir.resolve('build/libs/bb4-utils-1.0-SNAPSHOT.jar')))
     }
 
     @Test
