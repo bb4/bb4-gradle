@@ -86,7 +86,7 @@ bb4 {
 
 ## `jarMap` (multi-jar publications)
 
-Still supported when `bb4.publish` is applied: set `ext.jarMap` (or `jarMap` in `gradle.properties` / extension) **before** tasks resolve, same shape as 1.x (keys → maps with `include`, optional `exclude`). Prefer doing this in a `gradle.afterProject` or early in `build.gradle` so publications are created consistently.
+When `bb4.publish` is applied and you need to publish multiple artifacts from one project, configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
 
 ### Dependency Metadata
 

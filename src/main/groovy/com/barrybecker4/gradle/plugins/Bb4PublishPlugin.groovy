@@ -25,10 +25,16 @@ class Bb4PublishPlugin implements Plugin<Project> {
         project.pluginManager.apply('signing')
         Bb4Conventions.configureOssrhDefaults(project)
 
+        // Wait for java-library or java plugin to provide the main source set
+        project.pluginManager.withPlugin('java') {
+            configurePublishing(project)
+        }
+    }
+
+    private void configurePublishing(Project project) {
         def main = project.extensions.getByType(SourceSetContainer).named('main')
 
         def javadocTask = project.tasks.named('javadoc', Javadoc)
-        def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
 
         javadocTask.configure { Javadoc javadoc ->
             def copyAction = project.objects.newInstance(CopyPackageImages)
@@ -53,113 +59,124 @@ class Bb4PublishPlugin implements Plugin<Project> {
             jar.dependsOn javadocTask
         }
 
-        def scaladocJar = project.tasks.register('scaladocJar', Jar) { Jar jar ->
-            jar.description = 'Scaladoc jar for Sonatype'
-            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            jar.archiveClassifier.set('scaladoc')
-            jar.from scaladocTask.map { scaladocDestination(it) }
-            jar.dependsOn scaladocTask
+        // Register scaladocJar only when the scala plugin is applied
+        // Store the task provider in a holder that can be accessed later
+        def scaladocJarHolder = [taskProvider: null]
+        project.pluginManager.withPlugin('scala') {
+            def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+            scaladocJarHolder.taskProvider = project.tasks.register('scaladocJar', Jar) { Jar jar ->
+                jar.description = 'Scaladoc jar for Sonatype'
+                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                jar.archiveClassifier.set('scaladoc')
+                jar.from scaladocTask.map { scaladocDestination(it) }
+                jar.dependsOn scaladocTask
+            }
         }
 
-        def jarMap = readJarMap(project)
-        def explicitJarMap = project.extensions.extraProperties.has('jarMap') || project.findProperty('jarMap') != null
-        def multiJar = !jarMap.isEmpty()
+        // Defer publication creation, deploy URL, and signing until after the project (and gradle.properties)
+        // have set version and jarMap — both are often assigned after the plugins {} block in consuming builds.
+        project.afterEvaluate {
+            def bb4Extension = project.extensions.findByType(Bb4Extension)
+            def jarMap = resolveJarMap(project, bb4Extension)
+            def multiJar = !jarMap.isEmpty()
+            def hasScala = project.plugins.hasPlugin('scala')
 
-        if (explicitJarMap && !multiJar) {
-            project.tasks.named('jar', Jar).configure { it.enabled = false }
-            sourcesJar.configure { it.enabled = false }
-            javadocJar.configure { it.enabled = false }
-            scaladocJar.configure { it.enabled = false }
-        }
+            if (multiJar) {
+                project.tasks.named('jar', Jar).configure { it.enabled = false }
+                sourcesJar.configure { it.enabled = false }
+                javadocJar.configure { it.enabled = false }
+                if (scaladocJarHolder.taskProvider != null) {
+                    scaladocJarHolder.taskProvider.configure { it.enabled = false }
+                }
 
-        if (multiJar) {
-            project.tasks.named('jar', Jar).configure { it.enabled = false }
-            sourcesJar.configure { it.enabled = false }
-            javadocJar.configure { it.enabled = false }
-            scaladocJar.configure { it.enabled = false }
+                jarMap.each { String key, Map spec ->
+                    validateJarMapEntry(key, spec)
+                    def includes = spec['include'] as Iterable<?> ?: []
+                    def excludes = (spec['exclude'] as Iterable<?>)?.collect { it.toString() } ?: []
 
-            jarMap.each { String key, Map spec ->
-                def includes = spec['include'] as Iterable<?> ?: []
-                def excludes = (spec['exclude'] as Iterable<?>)?.collect { it.toString() } ?: []
-
-                project.tasks.register("${key}Jar", Jar) { Jar jar ->
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.from main.map { it.output }
-                    includes.each { jar.include it.toString() }
-                    excludes.each { jar.exclude it }
-                    jar.manifest {
-                        it.attributes(
-                            'Implementation-Title': "$key code",
-                            'Implementation-Version': project.version.toString(),
-                            'Application-Name': key,
-                            'Built-By': System.getProperty('user.name'),
-                            provider: 'gradle',
-                        )
+                    project.tasks.register("${key}Jar", Jar) { Jar jar ->
+                        jar.archiveBaseName.set("bb4-$key")
+                        jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                        jar.from main.map { it.output }
+                        includes.each { jar.include it.toString() }
+                        excludes.each { jar.exclude it }
+                        jar.manifest {
+                            it.attributes(
+                                'Implementation-Title': "$key code",
+                                'Implementation-Version': project.version.toString(),
+                                'Application-Name': key,
+                                'Built-By': System.getProperty('user.name'),
+                                provider: 'gradle',
+                            )
+                        }
+                    }
+                    project.tasks.register("${key}JavadocJar", Jar) { Jar jar ->
+                        jar.description = "Javadoc jar for $key"
+                        jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                        jar.archiveClassifier.set('javadoc')
+                        jar.archiveBaseName.set("bb4-$key")
+                        jar.from javadocTask.map { javadocDestination(it) }
+                        includes.each { jar.include it.toString() }
+                        jar.dependsOn javadocTask
+                    }
+                    // Register Scaladoc jar for multi-jar when scala plugin is present
+                    if (hasScala) {
+                        def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+                        project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
+                            jar.description = "Scaladoc jar for $key"
+                            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                            jar.archiveClassifier.set('scaladoc')
+                            jar.archiveBaseName.set("bb4-$key")
+                            jar.from scaladocTask.map { scaladocDestination(it) }
+                            includes.each { jar.include it.toString() }
+                            jar.dependsOn scaladocTask
+                        }
+                    }
+                    project.tasks.register("${key}SourcesJar", Jar) { Jar jar ->
+                        jar.description = "Sources jar for $key"
+                        jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                        jar.archiveClassifier.set('sources')
+                        jar.archiveBaseName.set("bb4-$key")
+                        jar.from main.map { it.allSource }
+                        includes.each { jar.include it.toString() }
+                        excludes.each { jar.exclude it }
+                        jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
                     }
                 }
-                project.tasks.register("${key}JavadocJar", Jar) { Jar jar ->
-                    jar.description = "Javadoc jar for $key"
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.archiveClassifier.set('javadoc')
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.from javadocTask.map { javadocDestination(it) }
-                    includes.each { jar.include it.toString() }
-                    jar.dependsOn javadocTask
-                }
-                project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
-                    jar.description = "Scaladoc jar for $key"
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.archiveClassifier.set('scaladoc')
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.from scaladocTask.map { scaladocDestination(it) }
-                    includes.each { jar.include it.toString() }
-                    jar.dependsOn scaladocTask
-                }
-                project.tasks.register("${key}SourcesJar", Jar) { Jar jar ->
-                    jar.description = "Sources jar for $key"
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.archiveClassifier.set('sources')
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.from main.map { it.allSource }
-                    includes.each { jar.include it.toString() }
-                    excludes.each { jar.exclude it }
-                    jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
-                }
             }
-        }
 
-        PublishingExtension publishing = project.extensions.getByType(PublishingExtension)
-
-        if (!multiJar) {
-            publishing.publications.create('mavenJava', MavenPublication) { MavenPublication pub ->
-                pub.artifactId = project.name
-                pub.groupId = 'com.barrybecker4'
-                pub.from project.components.java
-                pub.artifact sourcesJar
-                pub.artifact javadocJar
-                pub.artifact scaladocJar
-                addPom(pub, project)
-            }
-        } else {
-            jarMap.each { String key, Map ignored ->
-                publishing.publications.create("maven${key.capitalize()}", MavenPublication) { MavenPublication pub ->
-                    pub.groupId = 'com.barrybecker4'
-                    pub.artifactId = "bb4-$key"
-                    pub.version = project.version.toString()
-                    pub.artifact project.tasks.named("${key}Jar", Jar)
-                    pub.artifact project.tasks.named("${key}JavadocJar", Jar)
-                    pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
-                    pub.artifact project.tasks.named("${key}SourcesJar", Jar)
-                    addPom(pub, project, true)
-                }
-            }
-        }
-
-        // Defer deploy URL and signing until after the project (and gradle.properties) have set
-        // version — it is often assigned after the plugins {} block in consuming builds.
-        project.afterEvaluate {
             PublishingExtension evaluatedPublishing = project.extensions.getByType(PublishingExtension)
+
+            if (!multiJar) {
+                evaluatedPublishing.publications.create('mavenJava', MavenPublication) { MavenPublication pub ->
+                    pub.artifactId = project.name
+                    pub.groupId = 'com.barrybecker4'
+                    pub.from project.components.java
+                    pub.artifact sourcesJar
+                    pub.artifact javadocJar
+                    if (hasScala && scaladocJarHolder.taskProvider != null) {
+                        pub.artifact scaladocJarHolder.taskProvider
+                    }
+                    addPom(pub, project)
+                }
+            } else {
+                def finalVersion = project.version.toString()
+                jarMap.each { String key, Map ignored ->
+                    evaluatedPublishing.publications.create("maven${key.capitalize()}", MavenPublication) { MavenPublication pub ->
+                        pub.groupId = 'com.barrybecker4'
+                        pub.artifactId = "bb4-$key"
+                        pub.version = finalVersion
+                        pub.artifact project.tasks.named("${key}Jar", Jar)
+                        pub.artifact project.tasks.named("${key}JavadocJar", Jar)
+                        if (hasScala) {
+                            pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
+                        }
+                        pub.artifact project.tasks.named("${key}SourcesJar", Jar)
+                        addPom(pub, project, true)
+                    }
+                }
+            }
+
             def releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl(project)
             def snapshotRepoUrl = resolveBb4SnapshotRepoUrl(project)
             def versionString = project.version.toString()
@@ -340,18 +357,71 @@ class Bb4PublishPlugin implements Plugin<Project> {
         return null
     }
 
-    private static Map<String, Map> readJarMap(Project project) {
-        def raw = project.findProperty('jarMap')
-        if (!(raw instanceof Map)) {
-            return [:]
+    /**
+     * Resolve jarMap from bb4 extension (preferred) or legacy ext.jarMap.
+     * Validates the structure and provides clear error messages.
+     */
+    private static Map<String, Map> resolveJarMap(Project project, Bb4Extension bb4Extension) {
+        def extensionJarMap = bb4Extension != null ? bb4Extension.jarMap.getOrElse([:]) : [:]
+        def legacyJarMap = project.extensions.extraProperties.has('jarMap') ? 
+            project.extensions.extraProperties.get('jarMap') : null
+        
+        if (!extensionJarMap.isEmpty() && legacyJarMap != null) {
+            throw new IllegalStateException(
+                "bb4 Gradle: jarMap configured in both bb4 {} extension and ext.jarMap. " +
+                "Use only bb4 { jarMap.put('key', [...]) } — ext.jarMap is deprecated."
+            )
         }
-        def out = new LinkedHashMap<String, Map>()
-        raw.each { k, v ->
-            if (k instanceof String && v instanceof Map) {
-                out[k] = v as Map
+        
+        if (!extensionJarMap.isEmpty()) {
+            return new LinkedHashMap<String, Map>(extensionJarMap)
+        }
+        
+        if (legacyJarMap != null) {
+            if (!(legacyJarMap instanceof Map)) {
+                throw new IllegalArgumentException(
+                    "bb4 Gradle: ext.jarMap must be a Map, got ${legacyJarMap.getClass().name}. " +
+                    "Use bb4 { jarMap.put('key', [include: [...]]) } instead."
+                )
             }
+            def out = new LinkedHashMap<String, Map>()
+            legacyJarMap.each { k, v ->
+                if (!(k instanceof String)) {
+                    throw new IllegalArgumentException(
+                        "bb4 Gradle: jarMap key must be a String, got ${k.getClass().name} for key: $k"
+                    )
+                }
+                if (!(v instanceof Map)) {
+                    throw new IllegalArgumentException(
+                        "bb4 Gradle: jarMap value for '$k' must be a Map with 'include' and optional 'exclude', " +
+                        "got ${v.getClass().name}"
+                    )
+                }
+                out[k as String] = v as Map
+            }
+            return out
         }
-        return out
+        
+        return [:]
+    }
+    
+    /**
+     * Validate a single jarMap entry has required 'include' field.
+     */
+    private static void validateJarMapEntry(String key, Map spec) {
+        if (!spec.containsKey('include')) {
+            throw new IllegalArgumentException(
+                "bb4 Gradle: jarMap entry '$key' must have 'include' field with file patterns. " +
+                "Example: bb4 { jarMap.put('$key', [include: ['com/example/$key/**']]) }"
+            )
+        }
+        def include = spec['include']
+        if (include == null || (include instanceof Collection && ((Collection) include).isEmpty())) {
+            throw new IllegalArgumentException(
+                "bb4 Gradle: jarMap entry '$key' has empty 'include'. " +
+                "Provide at least one file pattern."
+            )
+        }
     }
 
     /**

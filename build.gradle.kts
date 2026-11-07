@@ -100,8 +100,32 @@ repositories {
     maven { url = URI("https://central.sonatype.com/repository/maven-snapshots/") }
 }
 
+testing {
+    suites {
+        val functionalTest by registering(JvmTestSuite::class) {
+            useSpock("2.3-groovy-4.0")
+            dependencies {
+                implementation(project())
+            }
+        }
+    }
+}
+
+gradlePlugin.testSourceSets(sourceSets["functionalTest"], sourceSets["test"])
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("functionalTest"))
+}
+
 dependencies {
     implementation(localGroovy())
+    testImplementation(gradleTestKit())
+    testImplementation("org.spockframework:spock-core:2.3-groovy-4.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")

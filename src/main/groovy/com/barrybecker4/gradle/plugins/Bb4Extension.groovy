@@ -3,6 +3,7 @@
 package com.barrybecker4.gradle.plugins
 
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
 import javax.inject.Inject
@@ -12,11 +13,19 @@ class Bb4Extension {
     final Property<String> archivesBaseName
     final Property<String> mainClass
     final Property<String> scalaVersion
+    
+    /**
+     * Multi-artifact publishing configuration. When present, creates one publication per entry.
+     * Each key is an artifact name; each value is a Map with 'include' (required) and 'exclude' (optional) patterns.
+     * Example: jarMap.put('common', [include: ['com/example/common/**']])
+     */
+    final MapProperty<String, Map<String, Object>> jarMap
 
     @Inject
     Bb4Extension(ObjectFactory objects) {
         archivesBaseName = objects.property(String).convention('')
         mainClass = objects.property(String).convention('')
         scalaVersion = objects.property(String).convention(Bb4DependencyVersions.SCALA)
+        jarMap = objects.mapProperty(String, Map).convention([:])
     }
 }
