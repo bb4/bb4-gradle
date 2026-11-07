@@ -53,7 +53,7 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
         project.tasks.register('copyToLib', Copy) { Copy task ->
             task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             task.description = 'Copies runtime dependencies into build/libs for deployment'
-            task.into 'build/libs'
+            task.into project.layout.buildDirectory.dir('libs')
             task.from project.configurations.named('runtimeClasspath')
             task.dependsOn project.tasks.named('jar')
         }
