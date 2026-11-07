@@ -76,15 +76,18 @@ class Bb4PublishPlugin implements Plugin<Project> {
         // Defer publication creation, deploy URL, and signing until after the project (and gradle.properties)
         // have set version and jarMap — both are often assigned after the plugins {} block in consuming builds.
         project.afterEvaluate {
-            def bb4Extension = project.extensions.getByType(Bb4Extension)
+            def bb4Extension = project.extensions.findByType(Bb4Extension)
             def jarMap = resolveJarMap(project, bb4Extension)
             def multiJar = !jarMap.isEmpty()
+            def hasScala = project.plugins.hasPlugin('scala')
 
             if (multiJar) {
                 project.tasks.named('jar', Jar).configure { it.enabled = false }
                 sourcesJar.configure { it.enabled = false }
                 javadocJar.configure { it.enabled = false }
-                scaladocJar.configure { it.enabled = false }
+                if (scaladocJarHolder.taskProvider != null) {
+                    scaladocJarHolder.taskProvider.configure { it.enabled = false }
+                }
 
                 jarMap.each { String key, Map spec ->
                     validateJarMapEntry(key, spec)
@@ -94,7 +97,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                     project.tasks.register("${key}Jar", Jar) { Jar jar ->
                         jar.archiveBaseName.set("bb4-$key")
                         jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                        jar.from main.output
+                        jar.from main.map { it.output }
                         includes.each { jar.include it.toString() }
                         excludes.each { jar.exclude it }
                         jar.manifest {
@@ -116,21 +119,25 @@ class Bb4PublishPlugin implements Plugin<Project> {
                         includes.each { jar.include it.toString() }
                         jar.dependsOn javadocTask
                     }
-                    project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
-                        jar.description = "Scaladoc jar for $key"
-                        jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                        jar.archiveClassifier.set('scaladoc')
-                        jar.archiveBaseName.set("bb4-$key")
-                        jar.from scaladocTask.map { scaladocDestination(it) }
-                        includes.each { jar.include it.toString() }
-                        jar.dependsOn scaladocTask
+                    // Register Scaladoc jar for multi-jar when scala plugin is present
+                    if (hasScala) {
+                        def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+                        project.tasks.register("${key}ScaladocJar", Jar) { Jar jar ->
+                            jar.description = "Scaladoc jar for $key"
+                            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                            jar.archiveClassifier.set('scaladoc')
+                            jar.archiveBaseName.set("bb4-$key")
+                            jar.from scaladocTask.map { scaladocDestination(it) }
+                            includes.each { jar.include it.toString() }
+                            jar.dependsOn scaladocTask
+                        }
                     }
                     project.tasks.register("${key}SourcesJar", Jar) { Jar jar ->
                         jar.description = "Sources jar for $key"
                         jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                         jar.archiveClassifier.set('sources')
                         jar.archiveBaseName.set("bb4-$key")
-                        jar.from main.allSource
+                        jar.from main.map { it.allSource }
                         includes.each { jar.include it.toString() }
                         excludes.each { jar.exclude it }
                         jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
@@ -147,7 +154,9 @@ class Bb4PublishPlugin implements Plugin<Project> {
                     pub.from project.components.java
                     pub.artifact sourcesJar
                     pub.artifact javadocJar
-                    pub.artifact scaladocJar
+                    if (hasScala && scaladocJarHolder.taskProvider != null) {
+                        pub.artifact scaladocJarHolder.taskProvider
+                    }
                     addPom(pub, project)
                 }
             } else {
@@ -159,7 +168,9 @@ class Bb4PublishPlugin implements Plugin<Project> {
                         pub.version = finalVersion
                         pub.artifact project.tasks.named("${key}Jar", Jar)
                         pub.artifact project.tasks.named("${key}JavadocJar", Jar)
-                        pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
+                        if (hasScala) {
+                            pub.artifact project.tasks.named("${key}ScaladocJar", Jar)
+                        }
                         pub.artifact project.tasks.named("${key}SourcesJar", Jar)
                         addPom(pub, project)
                     }
@@ -293,7 +304,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
      * Validates the structure and provides clear error messages.
      */
     private static Map<String, Map> resolveJarMap(Project project, Bb4Extension bb4Extension) {
-        def extensionJarMap = bb4Extension.jarMap.getOrElse([:])
+        def extensionJarMap = bb4Extension != null ? bb4Extension.jarMap.getOrElse([:]) : [:]
         def legacyJarMap = project.extensions.extraProperties.has('jarMap') ? 
             project.extensions.extraProperties.get('jarMap') : null
         

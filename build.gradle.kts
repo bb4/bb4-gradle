@@ -111,7 +111,7 @@ testing {
     }
 }
 
-gradlePlugin.testSourceSets(sourceSets["functionalTest"])
+gradlePlugin.testSourceSets(sourceSets["functionalTest"], sourceSets["test"])
 
 tasks.named("check") {
     dependsOn(testing.suites.named("functionalTest"))
