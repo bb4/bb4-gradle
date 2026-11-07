@@ -9,7 +9,7 @@ All notable changes to this project are documented in this file.
 - **Removed** shipping Groovy scripts as classpath resources (`bb4.gradle`, `bb4-publish.gradle`, `bb4-deploy.gradle`). Downstream projects must use published **plugin IDs** instead of `apply from:`.
 - **Removed** old Gradle 7.x wrapper; minimum supported Gradle is **8.14.x** (aligned with current wrapper).
 - **Java baseline** is **21** (toolchain), replacing compile `release`/target **17** from 1.x scripts.
-- **Scala** default bumped to **3.8.2** with updated test stack (JUnit 5, ScalaTest 3.2.19, etc.).
+- **Scala** default bumped to **3.8.2** with updated test stack (JUnit 5, ScalaTest 3.2.19, etc.). (Later updated to 3.10.0, ScalaTest 3.2.20, JUnit 5.14.4, scala-xml 2.5.0 — see issue #13)
 - **`bb4.base`** is explicit; **`bb4.scala-library`** applies base conventions internally (same as before logically, but ids are separate artifacts).
 
 ### Added

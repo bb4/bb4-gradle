@@ -10,7 +10,7 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 |------|---------|
 | Gradle (wrapper) | **8.14.x** (see `gradle/wrapper/gradle-wrapper.properties`) |
 | Java toolchain | **21** (enforced by `com.barrybecker4.bb4.base`) |
-| Scala (default in plugins) | **3.8.2** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+| Scala (default in plugins) | **3.10.0** (override via `bb4 { scalaVersion.set("…") }` if needed) |
 
 ## Published plugins
 
@@ -57,7 +57,7 @@ version = '1.0-SNAPSHOT'
 bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
     mainClass.set('com.example.Main')    // optional jar manifest / application main
-    // scalaVersion.set('3.8.2')        // optional override
+    // scalaVersion.set('3.10.0')       // optional override
 }
 ```
 
