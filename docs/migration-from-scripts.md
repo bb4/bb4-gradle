@@ -88,4 +88,12 @@ bb4 {
 
 Still supported when `bb4.publish` is applied: set `ext.jarMap` (or `jarMap` in `gradle.properties` / extension) **before** tasks resolve, same shape as 1.x (keys → maps with `include`, optional `exclude`). Prefer doing this in a `gradle.afterProject` or early in `build.gradle` so publications are created consistently.
 
-If you hit ordering issues, open an issue or split modules instead of `jarMap` for long-term simplicity.
+### Dependency Metadata
+
+Each `jarMap` publication automatically includes runtime dependencies in its POM:
+- **`implementation`** dependencies → `compile` scope (available at compile-time and runtime for consumers)
+- **`runtimeOnly`** dependencies → `runtime` scope (available only at runtime for consumers)
+
+This ensures that consumers of split artifacts (e.g., `bb4-common`, `bb4-ui`) receive required external dependencies (Scala library, Guava, etc.) transitively without manual reconstruction.
+
+**Recommendation for new projects**: Consider using Gradle's native multi-module structure instead of `jarMap` for better IDE support, clearer dependency boundaries, and simpler configuration. The `jarMap` feature exists for legacy compatibility with existing published artifacts.
