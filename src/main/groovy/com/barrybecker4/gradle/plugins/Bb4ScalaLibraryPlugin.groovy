@@ -9,6 +9,7 @@ import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.scala.ScalaPlugin
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
@@ -44,10 +45,8 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
         project.dependencies.add('implementation', bb4.scalaVersion.map { "org.scala-lang:scala3-library_3:$it" })
         Bb4Conventions.addScalaLibraryDependenciesExceptScalaLibrary(project.dependencies)
 
-        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME).configure { clean ->
-            clean.doFirst {
-                project.delete "${project.rootProject.projectDir}/dist"
-            }
+        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME, Delete).configure { Delete clean ->
+            clean.delete(project.layout.projectDirectory.dir('../dist'))
         }
 
         project.tasks.withType(Test).configureEach { Test test ->
