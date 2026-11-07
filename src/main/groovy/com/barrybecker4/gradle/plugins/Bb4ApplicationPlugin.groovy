@@ -51,14 +51,31 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             copy.group = 'distribution'
             copy.description = "Copy html related files to $projectDistributionDir"
             copy.into projectDistributionDir
+
+            def versionProvider = project.provider { project.version.toString() }
+            def appMapProvider = project.provider {
+                def raw = project.findProperty('appMap')
+                (raw instanceof Map) ? raw as Map<String, Map> : Collections.emptyMap()
+            }
+
+            copy.inputs.property('versionString', versionProvider)
+            copy.inputs.property('appMap', appMapProvider)
+
+            // Resolve values during configuration and capture them as plain objects
+            def versionValue = versionProvider.get()
+            def appMapValue = appMapProvider.get()
+
             copy.from('source/html') {
                 include '**/*.*'
                 exclude '**/*.png', '**/*.jpg', '**/*.PNG', '**/*.JPG'
-                filter ReplaceTokens, tokens: [version: project.version.toString()]
+                filter ReplaceTokens, tokens: [version: versionValue]
                 filter { String line ->
-                    line.contains('@table_rows@')
-                        ? createTableRows(project, line.substring(0, line.indexOf('@table_rows@'))) ?: line
-                        : line
+                    if (line.contains('@table_rows@')) {
+                        def indent = line.substring(0, line.indexOf('@table_rows@'))
+                        def rows = Bb4ApplicationPlugin.createTableRows(appMapValue, indent)
+                        return rows ?: line
+                    }
+                    return line
                 }
             }
             copy.from('source/html') {
@@ -114,16 +131,12 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
         return located instanceof File ? located as File : located.asFile as File
     }
 
-    private static String createTableRows(Project project, String indent) {
-        if (!project.hasProperty('appMap')) {
-            return null
-        }
-        def appMap = project.property('appMap')
-        if (!(appMap instanceof Map)) {
+    private static String createTableRows(Map<String, Map> appMapValue, String indent) {
+        if (appMapValue == null || appMapValue.isEmpty()) {
             return null
         }
         def rows = new StringBuilder()
-        appMap.each { String key, Map value ->
+        appMapValue.each { String key, Map value ->
             def imageName = value.containsKey('imageName') ? value.imageName.toString() : "${key}.jpg"
             def deploy = value.containsKey('deploy') ? value.deploy as boolean : true
             if (deploy) {

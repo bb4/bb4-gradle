@@ -5,13 +5,17 @@ package com.barrybecker4.gradle.plugins
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.scala.ScalaDoc
+
+import javax.inject.Inject
 
 class Bb4PublishPlugin implements Plugin<Project> {
 
@@ -21,28 +25,23 @@ class Bb4PublishPlugin implements Plugin<Project> {
         project.pluginManager.apply('signing')
         Bb4Conventions.configureOssrhDefaults(project)
 
-        def main = project.extensions.getByType(SourceSetContainer).named('main').get()
+        def main = project.extensions.getByType(SourceSetContainer).named('main')
 
         def javadocTask = project.tasks.named('javadoc', Javadoc)
         def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
 
         javadocTask.configure { Javadoc javadoc ->
-            javadoc.doLast {
-                def dest = javadocDestination(javadoc)
-                project.copy {
-                    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    from main.allSource
-                    into dest
-                    include '**/package.png'
-                }
-            }
+            def copyAction = project.objects.newInstance(CopyPackageImages)
+            copyAction.sourceFiles.from(main.map { it.allSource })
+            copyAction.destinationDir.set(javadoc.destinationDirectory)
+            javadoc.doLast(copyAction)
         }
 
         def sourcesJar = project.tasks.register('sourcesJar', Jar) { Jar jar ->
             jar.description = 'Source jar for Sonatype'
             jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             jar.archiveClassifier.set('sources')
-            jar.from main.allSource
+            jar.from main.map { it.allSource }
             jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
         }
 
@@ -86,7 +85,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                 project.tasks.register("${key}Jar", Jar) { Jar jar ->
                     jar.archiveBaseName.set("bb4-$key")
                     jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.from main.output
+                    jar.from main.map { it.output }
                     includes.each { jar.include it.toString() }
                     excludes.each { jar.exclude it }
                     jar.manifest {
@@ -122,7 +121,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                     jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                     jar.archiveClassifier.set('sources')
                     jar.archiveBaseName.set("bb4-$key")
-                    jar.from main.allSource
+                    jar.from main.map { it.allSource }
                     includes.each { jar.include it.toString() }
                     excludes.each { jar.exclude it }
                     jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
@@ -295,5 +294,31 @@ class Bb4PublishPlugin implements Plugin<Project> {
             }
         }
         return out
+    }
+
+    /**
+     * Task action that copies package.png images from source directories to javadoc output.
+     * Uses injected FileSystemOperations instead of capturing Project at execution time.
+     */
+    static abstract class CopyPackageImages implements org.gradle.api.Action<org.gradle.api.Task> {
+        @Inject
+        abstract FileSystemOperations getFileSystemOperations()
+
+        abstract org.gradle.api.file.ConfigurableFileCollection getSourceFiles()
+
+        abstract org.gradle.api.file.DirectoryProperty getDestinationDir()
+
+        @Override
+        void execute(org.gradle.api.Task task) {
+            if (!destinationDir.present) {
+                return
+            }
+            fileSystemOperations.copy {
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                from sourceFiles
+                into destinationDir
+                include '**/package.png'
+            }
+        }
     }
 }
