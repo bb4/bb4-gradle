@@ -29,7 +29,7 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
-    void 'base plugin applies and sets Java 21 toolchain'() {
+    void 'base plugin applies and sets Java 25 toolchain'() {
         settingsFile.toFile().text = """
             pluginManagement {
                 repositories {
@@ -58,7 +58,7 @@ class Bb4PluginsFunctionalTest {
 
         def result = runGradle('printToolchain')
 
-        assertTrue(result.output.contains('Toolchain version: 21'))
+        assertTrue(result.output.contains('Toolchain version: 25'))
         assertEquals(TaskOutcome.SUCCESS, result.task(':printToolchain').outcome)
     }
 
@@ -450,7 +450,7 @@ class Bb4PluginsFunctionalTest {
             
             bb4 {
                 archivesBaseName.set('custom-name')
-                scalaVersion.set('3.8.2')
+                scalaVersion.set('3.10.0')
             }
         """
 
