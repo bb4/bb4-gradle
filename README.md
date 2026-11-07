@@ -84,6 +84,25 @@ Apply only what you need:
 - **Publish to Sonatype** → add `com.barrybecker4.bb4.publish`.
 - **CLI / dist / deploy** → add `com.barrybecker4.bb4.application`.
 
+### Plugin composition and ordering
+
+The plugins are designed to work in **any application order**:
+
+- **`bb4.publish`** can be applied before or after `bb4.scala-library`. It requires the `java` or `java-library` plugin to be present (applied automatically by `scala-library`). For **Java-only projects** (using only `bb4.base` + `java-library`), `bb4.publish` will publish sources and javadoc jars without requiring Scaladoc.
+- **`bb4.application`** can be applied before or after `bb4.scala-library`. When used with `scala-library`, `bb4.mainClass` is automatically wired to `application.mainClass`. The standard `application` extension remains fully usable.
+
+**Supported combinations:**
+
+| Plugins applied | Result |
+|----------------|--------|
+| `bb4.base` alone | Java 25 toolchain, repositories, resolution defaults |
+| `bb4.base` + `java-library` | Plain Java library (no Scala) |
+| `bb4.base` + `java-library` + `bb4.publish` | Plain Java library with Maven Central publishing (sources + javadoc) |
+| `bb4.scala-library` | Scala + Java library (includes `bb4.base` internally) |
+| `bb4.scala-library` + `bb4.publish` | Scala library with publishing (sources + javadoc + scaladoc) |
+| `bb4.scala-library` + `bb4.application` | Scala application with `bb4.mainClass` → `application.mainClass` wiring |
+| `bb4.scala-library` + `bb4.publish` + `bb4.application` | Full-featured Scala app with publishing and distribution |
+
 Source layout expected by `scala-library`:
 
 - Java: `source/`, tests: `test/`
