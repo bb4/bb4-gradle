@@ -9,11 +9,7 @@ import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
-import org.gradle.jvm.application.tasks.CreateStartScripts
 import org.gradle.language.base.plugins.LifecycleBasePlugin
-
-import java.io.File
-import java.util.regex.Matcher
 
 class Bb4ApplicationPlugin implements Plugin<Project> {
 
@@ -109,29 +105,10 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
             dependsOn 'build', 'deployHtml', 'deploySchemas', 'deployZip'
         }
 
-        project.tasks.withType(CreateStartScripts).configureEach { CreateStartScripts scripts ->
-            scripts.doLast {
-                def win = startScriptOutputFile(scripts.windowsScript)
-                win.text = win.text.replaceFirst(/(set CLASSPATH=%APP_HOME%\\lib\\).*/, '$1*')
-                def unix = startScriptOutputFile(scripts.unixScript)
-                // String pattern (not slashy) avoids $APP_HOME being resolved on the task delegate; quote the
-                // replacement so $ in the shell script is not treated as a Matcher group back-reference.
-                unix.text = unix.text.replaceFirst(
-                    '(CLASSPATH=)(\\$APP_HOME/lib/).*',
-                    Matcher.quoteReplacement('CLASSPATH=$(echo $APP_HOME/lib/*.jar | tr \' \' \':\')'),
-                )
-            }
-        }
+        // Removed custom classpath manipulation: Gradle's default CreateStartScripts generates a properly
+        // quoted explicit classpath that works correctly with spaces in paths and JAR names. The previous
+        // wildcard replacement broke paths containing spaces and picked up unintended JARs from lib/.
 
-    }
-
-    /** Gradle 8.14+ exposes script locations as {@link File}; older versions used a lazy {@code RegularFileProperty}. */
-    private static File startScriptOutputFile(Object windowsOrUnixScript) {
-        if (windowsOrUnixScript instanceof File) {
-            return windowsOrUnixScript as File
-        }
-        def located = windowsOrUnixScript.get()
-        return located instanceof File ? located as File : located.asFile as File
     }
 
     private static String createTableRows(Map<String, Map> appMapValue, String indent) {
