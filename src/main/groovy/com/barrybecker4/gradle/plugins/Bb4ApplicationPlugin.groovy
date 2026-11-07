@@ -10,6 +10,7 @@ import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.application.tasks.CreateStartScripts
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 import java.io.File
 import java.util.regex.Matcher
@@ -27,6 +28,13 @@ class Bb4ApplicationPlugin implements Plugin<Project> {
         project.extensions.extraProperties.set('distributionDir', distributionDir)
         project.extensions.extraProperties.set('projectDistributionDir', projectDistributionDir)
         project.extensions.extraProperties.set('schemaDistributionDir', schemaDistributionDir)
+
+        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME).configure { clean ->
+            clean.doFirst {
+                project.delete project.file(projectDistributionDir)
+                project.delete project.file(schemaDistributionDir)
+            }
+        }
 
         def bb4 = project.extensions.findByType(Bb4Extension)
         def appExt = project.extensions.getByName('application')
