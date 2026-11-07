@@ -102,6 +102,13 @@ repositories {
 
 dependencies {
     implementation(localGroovy())
+    testImplementation(gradleTestKit())
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")

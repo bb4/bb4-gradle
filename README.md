@@ -8,9 +8,11 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 | Item | Version |
 |------|---------|
-| Gradle (wrapper) | **8.14.x** (see `gradle/wrapper/gradle-wrapper.properties`) |
+| Gradle (wrapper) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
 | Java toolchain | **21** (enforced by `com.barrybecker4.bb4.base`) |
 | Scala (default in plugins) | **3.8.2** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+
+**Minimum supported:** Gradle 8.5+ and JDK 21+ are required to use these plugins.
 
 ## Published plugins
 
@@ -71,6 +73,25 @@ Source layout expected by `scala-library`:
 
 - Java: `source/`, tests: `test/`
 - Scala: `scala-source/`, tests: `scala-test/`
+
+## Test this project (`bb4-gradle`)
+
+The plugin project includes a Gradle TestKit functional test suite in `src/test/groovy`. The suite exercises plugin behavior in temporary consumer projects, covering:
+
+- Plugin application and combinations (all four public plugin IDs)
+- Java/Scala compilation with toolchain configuration
+- Test engine discovery and execution (JUnit Jupiter + ScalaTest)
+- Maven publication coordinates, POM metadata, and signing decisions (SNAPSHOT vs. release)
+- Application distributions and scripts (including paths with spaces and custom build directories)
+- Extension value customization
+
+Run the tests locally:
+
+```bash
+./gradlew test
+```
+
+The CI workflow (`.github/workflows/ci.yml`) runs the suite on every push and pull request.
 
 ## Publish this project (`bb4-gradle`)
 
