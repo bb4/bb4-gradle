@@ -55,7 +55,7 @@ java {
     withJavadocJar()
     withSourcesJar()
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -66,7 +66,7 @@ gradlePlugin {
         create("bb4Base") {
             id = "com.barrybecker4.bb4.base"
             displayName = "bb4 base conventions"
-            description = "Java 21 toolchain, repositories, and resolution defaults for bb4 projects"
+            description = "Java 25 toolchain, repositories, and resolution defaults for bb4 projects"
             tags = listOf("bb4", "scala", "java", "convention")
             implementationClass = "com.barrybecker4.gradle.plugins.Bb4BasePlugin"
         }
@@ -119,6 +119,13 @@ tasks.named("check") {
 
 dependencies {
     implementation(localGroovy())
+    testImplementation(gradleTestKit())
+    testImplementation("org.spockframework:spock-core:2.3-groovy-4.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")

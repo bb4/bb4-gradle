@@ -8,15 +8,32 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 | Item | Version |
 |------|---------|
-| Gradle (wrapper) | **8.14.x** (see `gradle/wrapper/gradle-wrapper.properties`) |
-| Java toolchain | **21** (enforced by `com.barrybecker4.bb4.base`) |
-| Scala (default in plugins) | **3.8.2** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+| Gradle (wrapper) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
+| Java toolchain | **25** (enforced by `com.barrybecker4.bb4.base`) |
+| Scala (default in plugins) | **3.10.0** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+
+### Java Toolchain and Bytecode Compatibility
+
+The **Java 25 toolchain** requirement means:
+
+1. **This plugin** (`bb4-gradle`) is compiled with Java 25, and requires a Gradle daemon running on Java 25 or later to execute.
+2. **Consumer projects** that apply `com.barrybecker4.bb4.base` or `com.barrybecker4.bb4.scala-library` will default to Java 25 toolchains for compilation.
+
+**Bytecode target**: By default, consumer projects produce **Java 25 bytecode**. If your downstream consumers must run on older JVMs, you can override the bytecode/API level using `--release`:
+
+```groovy
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21  // or 17, etc.
+}
+```
+
+For Scala projects targeting older runtimes, configure the Scala compiler's `-release` or `-target` flag similarly. Note that using a newer toolchain with an older release target is the recommended approach for forward compatibility while maintaining backward runtime support.
 
 ## Published plugins
 
 | Plugin ID | Purpose |
 |-----------|---------|
-| `com.barrybecker4.bb4.base` | Java 21 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
+| `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks |
@@ -57,7 +74,7 @@ version = '1.0-SNAPSHOT'
 bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
     mainClass.set('com.example.Main')    // optional jar manifest / application main
-    // scalaVersion.set('3.8.2')        // optional override
+    // scalaVersion.set('3.10.0')        // optional override
     
     // Optional: multi-artifact publishing (when using bb4.publish)
     // jarMap.put('common', [include: ['com/example/common/**']])
@@ -67,9 +84,28 @@ bb4 {
 
 Apply only what you need:
 
-- **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 21 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
+- **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 25 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
 - **Publish to Sonatype** → add `com.barrybecker4.bb4.publish`.
 - **CLI / dist / deploy** → add `com.barrybecker4.bb4.application`.
+
+### Plugin composition and ordering
+
+The plugins are designed to work in **any application order**:
+
+- **`bb4.publish`** can be applied before or after `bb4.scala-library`. It requires the `java` or `java-library` plugin to be present (applied automatically by `scala-library`). For **Java-only projects** (using only `bb4.base` + `java-library`), `bb4.publish` will publish sources and javadoc jars without requiring Scaladoc.
+- **`bb4.application`** can be applied before or after `bb4.scala-library`. When used with `scala-library`, `bb4.mainClass` is automatically wired to `application.mainClass`. The standard `application` extension remains fully usable.
+
+**Supported combinations:**
+
+| Plugins applied | Result |
+|----------------|--------|
+| `bb4.base` alone | Java 25 toolchain, repositories, resolution defaults |
+| `bb4.base` + `java-library` | Plain Java library (no Scala) |
+| `bb4.base` + `java-library` + `bb4.publish` | Plain Java library with Maven Central publishing (sources + javadoc) |
+| `bb4.scala-library` | Scala + Java library (includes `bb4.base` internally) |
+| `bb4.scala-library` + `bb4.publish` | Scala library with publishing (sources + javadoc + scaladoc) |
+| `bb4.scala-library` + `bb4.application` | Scala application with `bb4.mainClass` → `application.mainClass` wiring |
+| `bb4.scala-library` + `bb4.publish` + `bb4.application` | Full-featured Scala app with publishing and distribution |
 
 Source layout expected by `scala-library`:
 

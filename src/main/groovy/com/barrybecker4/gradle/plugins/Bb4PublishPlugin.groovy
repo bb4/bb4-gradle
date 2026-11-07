@@ -5,13 +5,17 @@ package com.barrybecker4.gradle.plugins
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.scala.ScalaDoc
+
+import javax.inject.Inject
 
 class Bb4PublishPlugin implements Plugin<Project> {
 
@@ -21,28 +25,29 @@ class Bb4PublishPlugin implements Plugin<Project> {
         project.pluginManager.apply('signing')
         Bb4Conventions.configureOssrhDefaults(project)
 
-        def main = project.extensions.getByType(SourceSetContainer).named('main').get()
+        // Wait for java-library or java plugin to provide the main source set
+        project.pluginManager.withPlugin('java') {
+            configurePublishing(project)
+        }
+    }
+
+    private void configurePublishing(Project project) {
+        def main = project.extensions.getByType(SourceSetContainer).named('main')
 
         def javadocTask = project.tasks.named('javadoc', Javadoc)
-        def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
 
         javadocTask.configure { Javadoc javadoc ->
-            javadoc.doLast {
-                def dest = javadocDestination(javadoc)
-                project.copy {
-                    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    from main.allSource
-                    into dest
-                    include '**/package.png'
-                }
-            }
+            def copyAction = project.objects.newInstance(CopyPackageImages)
+            copyAction.sourceFiles.from(main.map { it.allSource })
+            copyAction.destinationDir.set(javadoc.destinationDirectory)
+            javadoc.doLast(copyAction)
         }
 
         def sourcesJar = project.tasks.register('sourcesJar', Jar) { Jar jar ->
             jar.description = 'Source jar for Sonatype'
             jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             jar.archiveClassifier.set('sources')
-            jar.from main.allSource
+            jar.from main.map { it.allSource }
             jar.dependsOn project.tasks.named(JavaPlugin.CLASSES_TASK_NAME)
         }
 
@@ -54,12 +59,18 @@ class Bb4PublishPlugin implements Plugin<Project> {
             jar.dependsOn javadocTask
         }
 
-        def scaladocJar = project.tasks.register('scaladocJar', Jar) { Jar jar ->
-            jar.description = 'Scaladoc jar for Sonatype'
-            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            jar.archiveClassifier.set('scaladoc')
-            jar.from scaladocTask.map { scaladocDestination(it) }
-            jar.dependsOn scaladocTask
+        // Register scaladocJar only when the scala plugin is applied
+        // Store the task provider in a holder that can be accessed later
+        def scaladocJarHolder = [taskProvider: null]
+        project.pluginManager.withPlugin('scala') {
+            def scaladocTask = project.tasks.named('scaladoc', ScalaDoc)
+            scaladocJarHolder.taskProvider = project.tasks.register('scaladocJar', Jar) { Jar jar ->
+                jar.description = 'Scaladoc jar for Sonatype'
+                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                jar.archiveClassifier.set('scaladoc')
+                jar.from scaladocTask.map { scaladocDestination(it) }
+                jar.dependsOn scaladocTask
+            }
         }
 
         // Defer publication creation, deploy URL, and signing until after the project (and gradle.properties)
@@ -341,6 +352,32 @@ class Bb4PublishPlugin implements Plugin<Project> {
                 "bb4 Gradle: jarMap entry '$key' has empty 'include'. " +
                 "Provide at least one file pattern."
             )
+        }
+    }
+
+    /**
+     * Task action that copies package.png images from source directories to javadoc output.
+     * Uses injected FileSystemOperations instead of capturing Project at execution time.
+     */
+    static abstract class CopyPackageImages implements org.gradle.api.Action<org.gradle.api.Task> {
+        @Inject
+        abstract FileSystemOperations getFileSystemOperations()
+
+        abstract org.gradle.api.file.ConfigurableFileCollection getSourceFiles()
+
+        abstract org.gradle.api.file.DirectoryProperty getDestinationDir()
+
+        @Override
+        void execute(org.gradle.api.Task task) {
+            if (!destinationDir.present) {
+                return
+            }
+            fileSystemOperations.copy {
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                from sourceFiles
+                into destinationDir
+                include '**/package.png'
+            }
         }
     }
 }
