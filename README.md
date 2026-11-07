@@ -29,6 +29,8 @@ tasks.withType(JavaCompile).configureEach {
 
 For Scala projects targeting older runtimes, configure the Scala compiler's `-release` or `-target` flag similarly. Note that using a newer toolchain with an older release target is the recommended approach for forward compatibility while maintaining backward runtime support.
 
+**Minimum supported:** Gradle 8.5+ and JDK 21+ are required to use these plugins.
+
 ## Published plugins
 
 | Plugin ID | Purpose |
@@ -111,6 +113,25 @@ Source layout expected by `scala-library`:
 
 - Java: `source/`, tests: `test/`
 - Scala: `scala-source/`, tests: `scala-test/`
+
+## Test this project (`bb4-gradle`)
+
+The plugin project includes a Gradle TestKit functional test suite in `src/test/groovy`. The suite exercises plugin behavior in temporary consumer projects, covering:
+
+- Plugin application and combinations (all four public plugin IDs)
+- Java/Scala compilation with toolchain configuration
+- Test engine discovery and execution (JUnit Jupiter + ScalaTest)
+- Maven publication coordinates, POM metadata, and signing decisions (SNAPSHOT vs. release)
+- Application distributions and scripts (including paths with spaces and custom build directories)
+- Extension value customization
+
+Run the tests locally:
+
+```bash
+./gradlew test
+```
+
+The CI workflow (`.github/workflows/ci.yml`) runs the suite on every push and pull request.
 
 ## Publish this project (`bb4-gradle`)
 

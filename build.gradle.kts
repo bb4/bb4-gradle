@@ -120,6 +120,7 @@ tasks.named("check") {
 dependencies {
     implementation(localGroovy())
     testImplementation(gradleTestKit())
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation("org.spockframework:spock-core:2.3-groovy-4.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
