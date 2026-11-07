@@ -45,10 +45,6 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
         project.dependencies.add('implementation', bb4.scalaVersion.map { "org.scala-lang:scala3-library_3:$it" })
         Bb4Conventions.addScalaLibraryDependenciesExceptScalaLibrary(project.dependencies)
 
-        project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME, Delete).configure { Delete clean ->
-            clean.delete(project.layout.projectDirectory.dir('../dist'))
-        }
-
         project.tasks.withType(Test).configureEach { Test test ->
             test.useJUnitPlatform {
                 includeEngines 'scalatest', 'junit-jupiter'
@@ -58,7 +54,7 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
         project.tasks.register('copyToLib', Copy) { Copy task ->
             task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             task.description = 'Copies runtime dependencies into build/libs for deployment'
-            task.into 'build/libs'
+            task.into project.layout.buildDirectory.dir('libs')
             task.from project.configurations.named('runtimeClasspath')
             task.dependsOn project.tasks.named('jar')
         }
