@@ -1,8 +1,8 @@
+// Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 import java.net.URI
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.publish.maven.MavenPublication
-// Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /** Legacy OSSRH hosts return 405 after EOL; ~/.gradle/gradle.properties often still overrides with these. */
 private fun Project.resolveBb4SnapshotRepoUrl(): String {
@@ -47,7 +47,7 @@ plugins {
 }
 
 group = "com.barrybecker4"
-version = "2.1-SNAPSHOT"
+version = "2.1"
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
 
