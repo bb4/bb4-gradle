@@ -38,7 +38,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
-| `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks |
+| `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
 Plugin implementations live under `src/main/groovy/`.
 
@@ -81,6 +81,17 @@ bb4 {
     // Optional: multi-artifact publishing (when using bb4.publish)
     // jarMap.put('common', [include: ['com/example/common/**']])
     // jarMap.put('ui', [include: ['com/example/ui/**'], exclude: ['**/*Test.class']])
+
+    // Optional: native installers (requires ext.appMap + jarMap + packaging/icons/<appId>/)
+    // jpackage {
+    //     enabled = true
+    //     packageIdentifierPrefix = 'com.example'
+    //     defaultMainClass = 'com.example.Main'
+    //     mainJarKey = { appId, props -> appId }           // or a fixed jarMap key
+    //     javaOptions = { appId, props -> ['-ea', '-Dfile.encoding=UTF-8'] }
+    //     arguments = { appId, props -> [] }               // each element -> --arguments
+    //     // consoleDesktopTemplate = layout.projectDirectory.file('packaging/linux-console/template.desktop')
+    // }
 }
 ```
 
@@ -89,6 +100,7 @@ Apply only what you need:
 - **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 25 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
 - **Publish to Sonatype** → add `com.barrybecker4.bb4.publish`.
 - **CLI / dist / deploy** → add `com.barrybecker4.bb4.application`.
+- **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `ext.appMap`, `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`).
 
 ### Plugin composition and ordering
 
