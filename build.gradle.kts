@@ -7,6 +7,7 @@ plugins {
     `java-gradle-plugin`
     `maven-publish`
     signing
+    id("org.jetbrains.kotlin.jvm") version "2.4.10"
     id("org.cyclonedx.bom") version "3.5.1"
 }
 
@@ -94,6 +95,7 @@ tasks.named("check") {
 
 dependencies {
     implementation(localGroovy())
+    implementation(kotlin("stdlib"))
     // Foojay convention plugin so Bb4SettingsPlugin can apply it without a consumer version.
     // Implementation jar (Plugin Portal marker points here).
     implementation("org.gradle.toolchains:foojay-resolver:1.0.0")

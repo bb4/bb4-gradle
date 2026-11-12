@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- **Kotlin rewrite ([#44](https://github.com/bb4/bb4-gradle/issues/44)):** Convention plugin implementation is Kotlin (Groovy remains for Spock/TestKit tests only). `bb4 {}` is created by `bb4.base` so Java-only `base` + `publish` projects get a typed place for `archivesBaseName`, `mainClass`, and `repository`. `jarMap` is a typed container that still accepts Groovy `jarMap.put('key', [include: …])`. Prefer `bb4.repository` and `bb4.appMap` on the extension; legacy `bb4.repository` / `ext.appMap` / `ext.jarMap` keep working.
 - **Published Maven POM metadata:** Updated project URL and SCM URLs to point to the new `bb4` GitHub organization (`https://github.com/bb4/`) instead of the legacy `barrybecker4` user account. Maven groupId, plugin IDs, package names, and developer identities remain unchanged.
 
 ### Added

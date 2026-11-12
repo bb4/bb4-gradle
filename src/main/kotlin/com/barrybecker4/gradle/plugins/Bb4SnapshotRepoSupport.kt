@@ -5,21 +5,22 @@ import org.gradle.api.Project
 
 /**
  * Resolves the Central Portal maven-snapshots deploy URL.
- * Legacy {@code oss.sonatype.org} overrides are ignored (405 after OSSRH EOL).
+ * Legacy `oss.sonatype.org` overrides are ignored (405 after OSSRH EOL).
  */
-final class Bb4SnapshotRepoSupport {
+object Bb4SnapshotRepoSupport {
 
-    static final String DEFAULT_SNAPSHOT_URL = 'https://central.sonatype.com/repository/maven-snapshots/'
+    const val DEFAULT_SNAPSHOT_URL = "https://central.sonatype.com/repository/maven-snapshots/"
 
-    private Bb4SnapshotRepoSupport() {}
-
-    static String resolveSnapshotRepoUrl(Project project) {
-        def explicit = (project.findProperty('bb4.ossrh.snapshotUrl')
-            ?: project.findProperty('bb4.central.snapshotUrl'))?.toString()?.trim()
-        if (!explicit) {
+    @JvmStatic
+    fun resolveSnapshotRepoUrl(project: Project): String {
+        val explicit = (
+            project.findProperty("bb4.ossrh.snapshotUrl")
+                ?: project.findProperty("bb4.central.snapshotUrl")
+            )?.toString()?.trim()
+        if (explicit.isNullOrEmpty()) {
             return DEFAULT_SNAPSHOT_URL
         }
-        if (explicit.contains('oss.sonatype.org')) {
+        if (explicit.contains("oss.sonatype.org")) {
             project.logger.warn(
                 "bb4 Gradle: ignoring legacy bb4.ossrh.snapshotUrl (OSSRH EOL): {} — using {}",
                 explicit,

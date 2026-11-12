@@ -10,7 +10,7 @@ version = "1.0.0-TEST"
 description = "Configuration cache validation consumer"
 
 bb4 {
-    scalaVersion = "3.6.2"
+    scalaVersion = "3.10.0"
     archivesBaseName = "bb4-config-cache-test"
     mainClass = "com.barrybecker4.test.Main"
 }

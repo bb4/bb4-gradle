@@ -102,13 +102,18 @@ dependencies {
 bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
     mainClass.set('com.example.Main')    // optional jar manifest / application main
-    // scalaVersion.set('3.10.0')        // optional override
+    // repository.set('bb4-my-lib')      // optional GitHub repo name for POM url/scm
+    // scalaVersion.set('3.10.0')        // optional override (scala-library)
     
     // Optional: multi-artifact publishing (when using bb4.publish)
     // jarMap.put('common', [include: ['com/example/common/**']])
     // jarMap.put('ui', [include: ['com/example/ui/**'], exclude: ['**/*Test.class']])
 
-    // Optional: native installers (requires ext.appMap + jarMap + packaging/icons/<appId>/)
+    // Optional: app metadata for deployHtml / jpackage (legacy ext.appMap still works)
+    // appMap.put('demo', [title: 'Demo', mainClass: 'com.example.Main', command: 'demo',
+    //                     description: 'd', longDescription: 'd'])
+
+    // Optional: native installers (requires appMap + jarMap + packaging/icons/<appId>/)
     // jpackage {
     //     enabled = true
     //     packageIdentifierPrefix = 'com.example'
@@ -136,15 +141,16 @@ Apply only what you need:
 The plugins are designed to work in **any application order**:
 
 - **`bb4.publish`** can be applied before or after `bb4.scala-library`. It requires the `java` or `java-library` plugin to be present (applied automatically by `scala-library`). For **Java-only projects** (using only `bb4.base` + `java-library`), `bb4.publish` will publish sources and javadoc jars without requiring Scaladoc.
-- **`bb4.application`** can be applied before or after `bb4.scala-library`. When used with `scala-library`, `bb4.mainClass` is automatically wired to `application.mainClass`. The standard `application` extension remains fully usable.
+- **`bb4.application`** can be applied before or after `bb4.scala-library` / `bb4.base`. When `bb4.base` is present, `bb4.mainClass` is wired to `application.mainClass`. The standard `application` extension remains fully usable.
+- **`bb4 {}`** is owned by **`bb4.base`** (also applied inside `scala-library`).
 
 **Supported combinations:**
 
 | Plugins applied | Result |
 |----------------|--------|
-| `bb4.base` alone | Java 25 toolchain, repositories, resolution defaults |
-| `bb4.base` + `java-library` | Plain Java library (no Scala) |
-| `bb4.base` + `java-library` + `bb4.publish` | Plain Java library with Maven Central publishing (sources + javadoc) |
+| `bb4.base` alone | Java 25 toolchain, repositories, resolution defaults, and `bb4 {}` extension |
+| `bb4.base` + `java-library` | Plain Java library (no Scala) with typed `bb4 {}` |
+| `bb4.base` + `java-library` + `bb4.publish` | Plain Java library with Maven Central publishing (sources + javadoc); set `bb4.repository` / `archivesBaseName` on the extension |
 | `bb4.scala-library` | Scala + Java library (includes `bb4.base` internally) |
 | `bb4.scala-library` + `bb4.publish` | Scala library with publishing (sources + javadoc + scaladoc) |
 | `bb4.scala-library` + `bb4.application` | Scala application with `bb4.mainClass` → `application.mainClass` wiring |

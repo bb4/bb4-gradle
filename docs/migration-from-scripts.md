@@ -55,6 +55,8 @@ plugins {
 bb4 {
     archivesBaseName.set('my-lib')
     mainClass.set('com.example.Main')  // if applicable
+    // repository.set('bb4-my-lib')   // optional; overrides project name for POM GitHub URLs
+    // (bb4 {} is created by bb4.base, which scala-library applies)
 }
 
 // Remove duplicate declarations now provided by plugins:

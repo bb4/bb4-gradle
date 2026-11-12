@@ -63,6 +63,59 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
+    void 'base alone creates bb4 extension for java-library publish'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'plain-java-lib'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.base'
+                id 'java-library'
+                id 'com.barrybecker4.bb4.publish'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            bb4 {
+                archivesBaseName = 'plain-java'
+                repository = 'bb4-example'
+            }
+
+            publishing {
+                repositories {
+                    mavenLocal()
+                }
+            }
+        """
+
+        def sourceDir = testProjectDir.resolve('src/main/java/com/test')
+        Files.createDirectories(sourceDir)
+        sourceDir.resolve('Sample.java').toFile().text = '''
+            package com.test;
+            public class Sample {}
+        '''
+
+        def result = runGradle('generatePomFileForMavenJavaPublication', 'jar')
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':generatePomFileForMavenJavaPublication').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':jar').outcome)
+
+        def pomFile = testProjectDir.resolve('build/publications/mavenJava/pom-default.xml').toFile()
+        assertTrue(pomFile.exists(), 'POM file should be generated')
+        def pomContent = pomFile.text
+        assertTrue(pomContent.contains('<url>https://github.com/bb4/bb4-example</url>'),
+            'POM should use bb4.repository from the extension')
+        assertTrue(pomContent.contains('<connection>scm:git:https://github.com/bb4/bb4-example.git</connection>'))
+    }
+
+    @Test
     void 'scala-library plugin configures source sets and test engines'() {
         settingsFile.toFile().text = """
             pluginManagement {
