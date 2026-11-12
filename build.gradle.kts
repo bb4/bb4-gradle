@@ -77,7 +77,7 @@ repositories {
 
 testing {
     suites {
-        val functionalTest by registering(JvmTestSuite::class) {
+        val functionalTest = register<JvmTestSuite>("functionalTest") {
             useSpock("2.3-groovy-4.0")
             dependencies {
                 implementation(project())
@@ -132,7 +132,7 @@ val catalogOut = generatedCatalogFile.get().asFile
 catalogOut.parentFile.mkdirs()
 catalogOut.writeText(renderedCatalogText)
 
-val generateBb4Catalog by tasks.registering {
+val generateBb4Catalog = tasks.register("generateBb4Catalog") {
     val source = layout.projectDirectory.file("gradle/libs.versions.toml")
     inputs.file(source)
     inputs.property("projectVersion", version.toString())
