@@ -106,7 +106,7 @@ class Bb4SettingsPluginFunctionalTest {
         '''.stripIndent()
     }
 
-    private GradleRunner runner(Path projectDir, String... args) {
+    private static GradleRunner runner(Path projectDir, String... args) {
         return GradleRunner.create()
             .withProjectDir(projectDir.toFile())
             .withArguments((args as List) + ['--stacktrace'])

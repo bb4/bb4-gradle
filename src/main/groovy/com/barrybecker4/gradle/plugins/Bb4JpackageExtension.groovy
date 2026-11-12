@@ -10,7 +10,7 @@ import javax.inject.Inject
 
 /**
  * Opt-in native installer configuration under {@code bb4.jpackage { }}.
- * Tasks are registered only when {@link #getEnabled()} is true.
+ * Tasks are registered only when {@link #enabled} is true.
  */
 class Bb4JpackageExtension {
 

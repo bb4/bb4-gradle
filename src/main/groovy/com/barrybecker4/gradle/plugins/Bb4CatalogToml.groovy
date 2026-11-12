@@ -53,7 +53,7 @@ final class Bb4CatalogToml {
         }
 
         def libraryPattern = Pattern.compile(
-            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*module\\s*=\\s*"([^:]+):([^"]+)"\\s*,\\s*version\\.ref\\s*=\\s*"([^"]+)"\\s*\\}',
+            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*module\\s*=\\s*"([^:]+):([^"]+)"\\s*,\\s*version\\.ref\\s*=\\s*"([^"]+)"\\s*}',
         )
         def libraryMatcher = libraryPattern.matcher(librariesSection)
         while (libraryMatcher.find()) {
@@ -66,10 +66,10 @@ final class Bb4CatalogToml {
 
         def pluginVersion = version(text, 'bb4-gradle')
         def pluginWithVersion = Pattern.compile(
-            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*,\\s*version\\.ref\\s*=\\s*"([^"]+)"\\s*\\}',
+            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*,\\s*version\\.ref\\s*=\\s*"([^"]+)"\\s*}',
         )
         def pluginIdOnly = Pattern.compile(
-            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*\\}',
+            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*}',
         )
         def withVersionMatcher = pluginWithVersion.matcher(pluginsSection)
         def seen = new HashSet<String>()

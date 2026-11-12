@@ -2,8 +2,12 @@
 
 package com.barrybecker4.gradle.plugins
 
+import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.plugins.JavaPlugin
@@ -323,7 +327,6 @@ class Bb4PublishPlugin implements Plugin<Project> {
     /**
      * Resolve Javadoc output directory across Gradle versions.
      * Gradle 8.14+: prefer {@code destinationDir} / {@code getDestinationDir()} (still populated for {@link Javadoc});
-     * {@link org.gradle.api.file.DirectoryProperty#present} can misbehave during lazy {@code jar.from} wiring.
      * Older Gradle: fall back to {@code destinationDirectory} when it is a present {@link org.gradle.api.file.DirectoryProperty}.
      */
     private static File javadocDestination(Javadoc javadoc) {
@@ -350,7 +353,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
         }
         if (docTask.hasProperty('destinationDirectory')) {
             def dd = docTask.destinationDirectory
-            if (dd instanceof org.gradle.api.file.DirectoryProperty && dd.present) {
+            if (dd instanceof DirectoryProperty && dd.present) {
                 return dd.get().asFile
             }
         }
@@ -361,16 +364,16 @@ class Bb4PublishPlugin implements Plugin<Project> {
      * Task action that copies package.png images from source directories to javadoc output.
      * Uses injected FileSystemOperations instead of capturing Project at execution time.
      */
-    static abstract class CopyPackageImages implements org.gradle.api.Action<org.gradle.api.Task> {
+    static abstract class CopyPackageImages implements Action<Task> {
         @Inject
         abstract FileSystemOperations getFileSystemOperations()
 
-        abstract org.gradle.api.file.ConfigurableFileCollection getSourceFiles()
+        abstract ConfigurableFileCollection getSourceFiles()
 
-        abstract org.gradle.api.file.DirectoryProperty getDestinationDir()
+        abstract DirectoryProperty getDestinationDir()
 
         @Override
-        void execute(org.gradle.api.Task task) {
+        void execute(Task task) {
             if (!destinationDir.present) {
                 return
             }
