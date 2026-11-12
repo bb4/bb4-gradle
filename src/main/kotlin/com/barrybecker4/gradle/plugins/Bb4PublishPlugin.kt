@@ -76,30 +76,8 @@ class Bb4PublishPlugin : Plugin<Project> {
         }
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
-        val bb4Extension = project.extensions.findByType(Bb4Extension::class.java)
 
-        // Defer mavenJava until afterEvaluate. Creating it eagerly registers publishMavenJava*
-        // tasks; removing the publication later leaves those tasks orphaned with an empty
-        // groupId (group is usually set after plugins {}), and `publish` still runs them.
-        var multiJarMode = false
-
-        fun enterMultiJarMode() {
-            if (multiJarMode) {
-                return
-            }
-            multiJarMode = true
-            project.tasks.named("jar", Jar::class.java).configure { it.isEnabled = false }
-            sourcesJar.configure { it.isEnabled = false }
-            javadocJar.configure { it.isEnabled = false }
-            scaladocJar?.configure { it.isEnabled = false }
-            // Belt-and-suspenders: drop any mavenJava that another path may have created,
-            // and disable leftover MavenJava publication tasks so `publish` cannot run them.
-            publishing.publications.findByName("mavenJava")?.let { publishing.publications.remove(it) }
-            project.tasks.matching { it.name.contains("MavenJavaPublication") }.configureEach { task ->
-                task.enabled = false
-            }
-        }
-
+        // Defer mavenJava until afterEvaluate so group/version set after plugins {} are visible.
         fun createMavenJavaPublication() {
             if (publishing.publications.findByName("mavenJava") != null) {
                 return
@@ -124,103 +102,8 @@ class Bb4PublishPlugin : Plugin<Project> {
             }
         }
 
-        fun registerJarMapEntry(key: String, includes: List<String>, excludes: List<String>) {
-            enterMultiJarMode()
-            val hasScala = project.plugins.hasPlugin("scala")
-
-            project.tasks.register("${key}Jar", Jar::class.java) { jar ->
-                jar.archiveBaseName.set("bb4-$key")
-                jar.from(main.map { it.output })
-                includes.forEach { jar.include(it) }
-                excludes.forEach { jar.exclude(it) }
-                jar.manifest { manifest ->
-                    manifest.attributes(
-                        mapOf(
-                            "Implementation-Title" to "$key code",
-                            "Implementation-Version" to project.provider { project.version.toString() },
-                            "Application-Name" to key,
-                            "Built-By" to System.getProperty("user.name"),
-                            "provider" to "gradle",
-                        ),
-                    )
-                }
-            }
-            project.tasks.register("${key}JavadocJar", Jar::class.java) { jar ->
-                jar.description = "Javadoc jar for $key"
-                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                jar.archiveClassifier.set("javadoc")
-                jar.archiveBaseName.set("bb4-$key")
-                jar.from(javadocTask.map { documentationOutputDir(it) })
-                includes.forEach { jar.include(it) }
-                jar.dependsOn(javadocTask)
-            }
-            if (hasScala) {
-                val scaladocTask = project.tasks.named("scaladoc", ScalaDoc::class.java)
-                project.tasks.register("${key}ScaladocJar", Jar::class.java) { jar ->
-                    jar.description = "Scaladoc jar for $key"
-                    jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    jar.archiveClassifier.set("scaladoc")
-                    jar.archiveBaseName.set("bb4-$key")
-                    jar.from(scaladocTask.map { documentationOutputDir(it) })
-                    includes.forEach { jar.include(it) }
-                    jar.dependsOn(scaladocTask)
-                }
-            }
-            project.tasks.register("${key}SourcesJar", Jar::class.java) { jar ->
-                jar.description = "Sources jar for $key"
-                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                jar.archiveClassifier.set("sources")
-                jar.archiveBaseName.set("bb4-$key")
-                jar.from(main.map { it.allSource })
-                includes.forEach { jar.include(it) }
-                excludes.forEach { jar.exclude(it) }
-                jar.dependsOn(project.tasks.named(JavaPlugin.CLASSES_TASK_NAME))
-            }
-
-            val pubName = "maven${key.replaceFirstChar { it.uppercase() }}"
-            publishing.publications.create(pubName, MavenPublication::class.java) { pub ->
-                pub.groupId = Bb4PomSupport.groupId(project)
-                pub.artifactId = "bb4-$key"
-                pub.version = project.version.toString()
-                pub.artifact(project.tasks.named("${key}Jar", Jar::class.java))
-                pub.artifact(project.tasks.named("${key}JavadocJar", Jar::class.java))
-                if (hasScala) {
-                    pub.artifact(project.tasks.named("${key}ScaladocJar", Jar::class.java))
-                }
-                pub.artifact(project.tasks.named("${key}SourcesJar", Jar::class.java))
-                Bb4PomSupport.configurePom(pub, project, true)
-                Bb4CycloneDxSupport.attachBomToPublication(project, pub)
-            }
-        }
-
-        if (bb4Extension != null) {
-            bb4Extension.jarMap.all { entry ->
-                Bb4JarMap.validateEntry(entry)
-                registerJarMapEntry(
-                    entry.name,
-                    entry.include.getOrElse(emptyList()),
-                    entry.exclude.getOrElse(emptyList()),
-                )
-            }
-        }
-
-        // Legacy ext.jarMap + single-jar mavenJava + final group/version (often set after plugins {}).
-        // Extension jarMap entries themselves are wired above via container callbacks.
         project.afterEvaluate {
-            // Always resolve so dual bb4.jarMap + ext.jarMap conflicts are detected.
-            val resolved = Bb4JarMap.resolve(project, bb4Extension)
-            if (!multiJarMode && resolved.isNotEmpty()) {
-                resolved.forEach { (key, spec) ->
-                    Bb4JarMap.validateEntry(key, spec)
-                    @Suppress("UNCHECKED_CAST")
-                    val includes = (spec["include"] as? Iterable<*>)?.map { it.toString() } ?: emptyList()
-                    val excludes = (spec["exclude"] as? Iterable<*>)?.map { it.toString() } ?: emptyList()
-                    registerJarMapEntry(key, includes, excludes)
-                }
-            }
-            if (!multiJarMode) {
-                createMavenJavaPublication()
-            }
+            createMavenJavaPublication()
             publishing.publications.withType(MavenPublication::class.java).configureEach { pub ->
                 val gid = Bb4PomSupport.groupId(project)
                 require(gid.isNotBlank()) {

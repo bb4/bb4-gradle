@@ -6,10 +6,11 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
-- **jpackage without jarMap ([#42](https://github.com/bb4/bb4-gradle/issues/42)):**
-  When `jarMap` is empty, native installers use the project `jar` as `--main-jar`
-  (`bb4.publish` not required). Library-vs-app guidance: leaf app repos should not apply
-  `bb4.publish`. `jarMap` remains temporarily for multi-artifact library publishing compat.
+- **Removed jarMap ([#42](https://github.com/bb4/bb4-gradle/issues/42)):**
+  Multi-artifact `jarMap` / `ext.jarMap` publishing is gone. Jpackage always uses the
+  project `jar` as `--main-jar` (`bb4.publish` not required; `mainJarKey` removed).
+  Library-vs-app guidance: leaf app repos should not apply `bb4.publish`. Library repos
+  keep single-artifact `bb4.publish`.
 
 ### Fixed
 

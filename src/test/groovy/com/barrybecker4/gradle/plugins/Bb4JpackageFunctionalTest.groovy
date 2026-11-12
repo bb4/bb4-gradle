@@ -39,19 +39,17 @@ class Bb4JpackageFunctionalTest {
         buildFile.toFile().text = """
             plugins {
                 id 'com.barrybecker4.bb4.scala-library'
-                id 'com.barrybecker4.bb4.publish'
                 id 'com.barrybecker4.bb4.application'
             }
             group = 'com.test'
             version = '1.0-SNAPSHOT'
             bb4 {
                 mainClass.set('com.test.Main')
-                jarMap.put('demo', [include: ['com/test/**']])
+                apps.put('demo', [
+                    title: 'Demo', mainClass: 'com.test.Main',
+                    command: 'demo', description: 'd', longDescription: 'd'
+                ])
             }
-            ext.appMap = [
-                demo: [title: 'Demo', mainClass: 'com.test.Main',
-                       command: 'demo', description: 'd', longDescription: 'd']
-            ]
         """
 
         def result = runGradle('tasks', '--group=distribution')
@@ -166,27 +164,28 @@ class Bb4JpackageFunctionalTest {
         """
             plugins {
                 id 'com.barrybecker4.bb4.scala-library'
-                id 'com.barrybecker4.bb4.publish'
                 id 'com.barrybecker4.bb4.application'
             }
             group = 'com.test'
             version = '1.0-SNAPSHOT'
             bb4 {
+                archivesBaseName.set('bb4-demo')
                 mainClass.set('com.test.Main')
-                jarMap.put('demo', [include: ['com/test/**']])
+                apps.put('demo', [
+                    title: 'Demo App', mainClass: 'com.test.Main',
+                    command: 'demo', description: 'A "demo"', longDescription: 'd',
+                    flag: 'go'
+                ])
+                apps.put('hidden', [
+                    title: 'Hidden', mainClass: 'com.test.Main',
+                    command: 'hidden', description: 'h', longDescription: 'h',
+                    deploy: false
+                ])
                 jpackage {
                     enabled = true
                     ${jpackageBody}
                 }
             }
-            ext.appMap = [
-                demo: [title: 'Demo App', mainClass: 'com.test.Main',
-                       command: 'demo', description: 'A "demo"', longDescription: 'd',
-                       flag: 'go'],
-                hidden: [title: 'Hidden', mainClass: 'com.test.Main',
-                         command: 'hidden', description: 'h', longDescription: 'h',
-                         deploy: false]
-            ]
         """
     }
 

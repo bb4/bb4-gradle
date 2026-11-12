@@ -2,7 +2,6 @@
 package com.barrybecker4.gradle.plugins
 
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
 import org.gradle.api.publish.maven.MavenPublication
 
 /**
@@ -49,14 +48,11 @@ object Bb4PomSupport {
 
     /**
      * Apply Central-required POM metadata.
-     * @param includeRuntimeDependencies when true (jarMap pubs), inject implementation/runtimeOnly deps
      */
     @JvmStatic
-    @JvmOverloads
     fun configurePom(
         pub: MavenPublication,
         project: Project,
-        includeRuntimeDependencies: Boolean = false,
     ) {
         pub.pom { pom ->
             pom.name.set(project.name)
@@ -81,32 +77,6 @@ object Bb4PomSupport {
                     developer.id.set("barrybecker4")
                     developer.name.set("Barry G. Becker")
                     developer.email.set("barrybecker4@gmail.com")
-                }
-            }
-
-            if (includeRuntimeDependencies) {
-                pom.withXml { xml ->
-                    val dependenciesNode = xml.asNode().appendNode("dependencies")
-                    val seenDeps = HashSet<String>()
-
-                    fun addDeps(configurationName: String, scope: String) {
-                        val configuration = project.configurations.findByName(configurationName) ?: return
-                        configuration.allDependencies.forEach { dep: Dependency ->
-                            if (dep.group != null && dep.name != "unspecified") {
-                                val key = "${dep.group}:${dep.name}"
-                                if (seenDeps.add(key)) {
-                                    val dependencyNode = dependenciesNode.appendNode("dependency")
-                                    dependencyNode.appendNode("groupId", dep.group)
-                                    dependencyNode.appendNode("artifactId", dep.name)
-                                    dependencyNode.appendNode("version", dep.version)
-                                    dependencyNode.appendNode("scope", scope)
-                                }
-                            }
-                        }
-                    }
-
-                    addDeps("implementation", "compile")
-                    addDeps("runtimeOnly", "runtime")
                 }
             }
         }

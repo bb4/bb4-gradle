@@ -145,7 +145,7 @@ bb4 {
 }
 ```
 
-The plugin registers `runSudoku`, `createSudokuApp`, fills deployHtml from the same model, and (when `jpackage.enabled`) builds installers. Delete local `appMap.each { JavaExec / CreateStartScripts }` and jarMap `dependsOn` blocks. Schemas live under `source/schema` (or `bb4.schemaDirectory`); do not disable `deploySchemas` just to avoid a whole-project scan.
+The plugin registers `runSudoku`, `createSudokuApp`, fills deployHtml from the same model, and (when `jpackage.enabled`) builds installers. Delete local `appMap.each { JavaExec / CreateStartScripts }` blocks. Schemas live under `source/schema` (or `bb4.schemaDirectory`); do not disable `deploySchemas` just to avoid a whole-project scan.
 
 Release installers: call the org reusable workflow instead of copying matrix YAML:
 
@@ -157,41 +157,24 @@ jobs:
       contents: write
 ```
 
-## `jarMap` (multi-jar publications) — deprecated / compat only
+## `jarMap` removed (#42)
 
-`jarMap` slices one compilation into many Maven artifacts. It remains temporarily for
-legacy multi-artifact publishing. Prefer **one artifact per library repo**. App /
-installer-only repos should not use `jarMap` or `bb4.publish` at all — jpackage uses
-the project `jar` when `jarMap` is empty.
-
-When `bb4.publish` is applied and you still need multiple artifacts from one project,
-configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
-
-### Dependency Metadata
-
-Each `jarMap` publication automatically includes runtime dependencies in its POM:
-- **`implementation`** dependencies → `compile` scope (available at compile-time and runtime for consumers)
-- **`runtimeOnly`** dependencies → `runtime` scope (available only at runtime for consumers)
-
-This ensures that consumers of split artifacts receive required external dependencies
-transitively without manual reconstruction.
-
-**Recommendation**: Do not start new `jarMap` usage. Library repos publish one artifact;
-app repos drop publish entirely (see below).
+Multi-artifact `jarMap` / `ext.jarMap` publishing was removed. Library repos publish one
+artifact via `bb4.publish`. App / installer-only repos should not apply `bb4.publish`;
+jpackage always uses the project `jar` as `--main-jar`.
 
 ## Migrating app repos off publish + jarMap (#42)
 
 For each app repo (`bb4-games`, `bb4-puzzles`, `bb4-simulations`, `bb4-adventure`,
 `bb4-aikido-app`, `bb4-Q-learning`, `bb4-experimentation`):
 
-1. Require a `bb4-gradle` version that supports jpackage without jarMap.
+1. Require a `bb4-gradle` version that has removed jarMap (or at least supports jpackage without it).
 2. Remove `alias(bb4Libs.plugins.publish)` / `bb4.publish`.
 3. Delete all `jarMap` / `ext.jarMap` and Sonatype publish-throttle `afterEvaluate` blocks.
 4. Keep `scala-library` + `application` (or existing custom `run*` tasks).
-5. For jpackage: remove `mainJarKey` if it only pointed at a jarMap key; keep `apps`, icons,
+5. For jpackage: remove `mainJarKey` (no longer exists); keep `apps`, icons,
    `packageIdentifierPrefix`.
 6. CI: stop `publishArtifacts` / Central credentials; keep build/test and installer workflows.
 7. README: describe as app / installers only, not published to Sonatype.
 
-After all app repos migrate, upgrade `bb4-gradle` again to a release that removes jarMap entirely.
 Optional: update `bb4-website` so leaf apps are not described as deployed to Sonatype.

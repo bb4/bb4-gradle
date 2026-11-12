@@ -43,14 +43,12 @@ class Bb4AppsFunctionalTest {
         buildFile.toFile().text = """
             plugins {
                 id 'com.barrybecker4.bb4.scala-library'
-                id 'com.barrybecker4.bb4.publish'
                 id 'com.barrybecker4.bb4.application'
             }
             group = 'com.test'
             version = '1.0'
             bb4 {
                 mainClass.set('com.test.Foo')
-                jarMap.put('foo', [include: ['com/test/Foo.class']])
                 apps.put('foo', [
                     title: 'Foo',
                     mainClass: 'com.test.Foo',
@@ -76,7 +74,6 @@ class Bb4AppsFunctionalTest {
         def result = runGradle('createFooApp', 'createBarApp', 'startScripts')
         assertEquals(TaskOutcome.SUCCESS, result.task(':createFooApp').outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(':createBarApp').outcome)
-        assertEquals(TaskOutcome.SUCCESS, result.task(':fooJar').outcome)
 
         def scriptsDir = testProjectDir.resolve('build/scripts').toFile()
         assertTrue(new File(scriptsDir, 'bb4-foo').exists() || new File(scriptsDir, 'bb4-foo.bat').exists())

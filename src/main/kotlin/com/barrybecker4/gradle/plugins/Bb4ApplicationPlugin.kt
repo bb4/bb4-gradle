@@ -49,7 +49,7 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                 registerJpackageTasks(project, bb4)
             }
 
-            // Also cover: enabled set without block, or apps/appMap/jarMap filled after jpackage {}.
+            // Also cover: enabled set without block, or appMap filled after jpackage {}.
             // Legacy ext.appMap is often assigned after the bb4 {} block.
             project.afterEvaluate {
                 registerAppTasks(project, bb4, appExt)
@@ -149,13 +149,6 @@ class Bb4ApplicationPlugin : Plugin<Project> {
             val osName = System.getProperty("os.name")
             val mainSourceSet = project.extensions.getByType(JavaPluginExtension::class.java)
                 .sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-            val jarMap = Bb4JarMap.resolve(project, bb4)
-            val jarMapJarTaskNames = jarMap.keys.map { key -> "${key}Jar" }
-
-            if (jarMapJarTaskNames.isNotEmpty()) {
-                project.tasks.named("installDist").configure { it.dependsOn(jarMapJarTaskNames) }
-                project.tasks.named("startScripts").configure { it.dependsOn(jarMapJarTaskNames) }
-            }
 
             appMap.forEach { (appId, propMap) ->
                 val capitalized = Bb4AppSupport.capitalizeAppId(appId)
@@ -191,9 +184,6 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                             .get().outputDir
                         scripts.applicationName = applicationName
                         scripts.defaultJvmOpts = jvmArgs
-                        if (jarMapJarTaskNames.isNotEmpty()) {
-                            scripts.dependsOn(jarMapJarTaskNames)
-                        }
                     }
 
                     appExt.applicationDistribution.into("bin") { copy ->
@@ -230,14 +220,6 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                 return
             }
 
-            val jarMap = Bb4JarMap.resolve(project, bb4)
-            val useJarMap = jarMap.isNotEmpty()
-            val jarMapJarTaskNames = if (useJarMap) {
-                jarMap.keys.map { key -> "${key}Jar" }
-            } else {
-                emptyList()
-            }
-
             project.extensions.extraProperties.set("bb4.jpackage.registered", true)
 
             val osName = System.getProperty("os.name")
@@ -245,79 +227,13 @@ class Bb4ApplicationPlugin : Plugin<Project> {
             val jpackageVersion = Bb4JpackageSupport.sanitizeAppVersion(project.version)
             project.extensions.extraProperties.set("jpackageVersion", jpackageVersion)
 
-            if (useJarMap) {
-                project.tasks.named("installDist").configure { it.dependsOn(jarMapJarTaskNames) }
-                project.tasks.named("startScripts").configure { it.dependsOn(jarMapJarTaskNames) }
-            } else {
-                project.tasks.named("installDist").configure { it.dependsOn("jar") }
-            }
+            project.tasks.named("installDist").configure { it.dependsOn("jar") }
 
             val jpackageBin = if (jp.jpackageExecutable.isPresent) {
                 jp.jpackageExecutable.get().asFile
             } else {
                 val home = System.getProperty("java.home")
                 java.io.File(home, "bin/" + Bb4JpackageSupport.defaultJpackageBinaryName(osName))
-            }
-
-            fun syncJarMapIntoInstallLib(installLib: java.io.File) {
-                if (!useJarMap) {
-                    return
-                }
-                jarMap.keys.forEach { key ->
-                    val jarFile = project.tasks.named("${key}Jar", org.gradle.api.tasks.bundling.Jar::class.java)
-                        .get().archiveFile.get().asFile
-                    if (!jarFile.isFile) {
-                        throw GradleException("jpackage: ${jarFile.name} not built; run ${key}Jar first")
-                    }
-                    val target = java.io.File(installLib, jarFile.name)
-                    if (!target.isFile || target.lastModified() < jarFile.lastModified()) {
-                        Files.copy(jarFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                    }
-                }
-            }
-
-            fun resolveMainJarName(
-                appId: String,
-                propMap: Map<String, Any?>,
-                installLib: java.io.File,
-            ): String {
-                if (!useJarMap) {
-                    val projectJar = project.tasks.named(
-                        "jar",
-                        org.gradle.api.tasks.bundling.Jar::class.java,
-                    ).get().archiveFile.get().asFile
-                    val mainJarName = projectJar.name
-                    val mainJarFile = java.io.File(installLib, mainJarName)
-                    if (!mainJarFile.isFile) {
-                        throw GradleException(
-                            "jpackage $appId: missing $mainJarName in $installLib. " +
-                                "Run installDist so the project jar is in lib/.",
-                        )
-                    }
-                    return mainJarName
-                }
-                val mainJarKey = Bb4JpackageSupport.invokeConfigured(
-                    jp.mainJarKey,
-                    appId,
-                    propMap,
-                ) as String
-                if (!jarMap.containsKey(mainJarKey)) {
-                    throw GradleException(
-                        "jpackage $appId: no jarMap entry for mainJarKey '$mainJarKey'",
-                    )
-                }
-                val mainJarName = project.tasks.named(
-                    "${mainJarKey}Jar",
-                    org.gradle.api.tasks.bundling.Jar::class.java,
-                ).get().archiveFile.get().asFile.name
-                val mainJarFile = java.io.File(installLib, mainJarName)
-                if (!mainJarFile.isFile) {
-                    throw GradleException(
-                        "jpackage $appId: missing $mainJarName in $installLib. " +
-                            "Run installDist after all jarMap jars are built.",
-                    )
-                }
-                return mainJarName
             }
 
             val jpackageAppIds = appMap.filter { (_, entry) ->
@@ -331,9 +247,6 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                     exec.group = "distribution"
                     exec.description = "Build a native $jpackageType installer for ${propMap["title"]}"
                     exec.dependsOn("installDist")
-                    if (useJarMap) {
-                        exec.dependsOn(jarMapJarTaskNames)
-                    }
 
                     val destDir = project.layout.buildDirectory.dir("jpackage/$appId")
                     exec.outputs.dir(destDir)
@@ -357,9 +270,19 @@ class Bb4ApplicationPlugin : Plugin<Project> {
 
                         val installLib = project.layout.buildDirectory
                             .dir("install/${project.name}/lib").get().asFile
-                        syncJarMapIntoInstallLib(installLib)
 
-                        val mainJarName = resolveMainJarName(appId, propMap, installLib)
+                        val projectJar = project.tasks.named(
+                            "jar",
+                            org.gradle.api.tasks.bundling.Jar::class.java,
+                        ).get().archiveFile.get().asFile
+                        val mainJarName = projectJar.name
+                        val mainJarFile = java.io.File(installLib, mainJarName)
+                        if (!mainJarFile.isFile) {
+                            throw GradleException(
+                                "jpackage $appId: missing $mainJarName in $installLib. " +
+                                    "Run installDist so the project jar is in lib/.",
+                            )
+                        }
 
                         val mainClassName = (
                             propMap["mainClass"]

@@ -438,58 +438,6 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
-    void 'publish plugin multi-artifact mode creates separate publications'() {
-        settingsFile.toFile().text = """
-            pluginManagement {
-                repositories {
-                    mavenLocal()
-                    gradlePluginPortal()
-                }
-            }
-            rootProject.name = 'test-multi-jar'
-        """
-        buildFile.toFile().text = """
-            plugins {
-                id 'com.barrybecker4.bb4.scala-library'
-                id 'com.barrybecker4.bb4.publish'
-            }
-            
-            group = 'com.test'
-            version = '1.0-SNAPSHOT'
-            
-            bb4 {
-                jarMap.put('common', [include: ['com/test/common/**']])
-                jarMap.put('utils', [include: ['com/test/utils/**']])
-            }
-            
-            publishing {
-                repositories {
-                    mavenLocal()
-                }
-            }
-        """
-
-        def sourceDir = testProjectDir.resolve('source/com/test')
-        Files.createDirectories(sourceDir.resolve('common'))
-        Files.createDirectories(sourceDir.resolve('utils'))
-        sourceDir.resolve('common/Common.java').toFile().text = '''
-            package com.test.common;
-            public class Common {}
-        '''
-        sourceDir.resolve('utils/Utils.java').toFile().text = '''
-            package com.test.utils;
-            public class Utils {}
-        '''
-
-        def result = runGradle('commonJar', 'utilsJar')
-
-        assertTrue(result.task(':commonJar').outcome in [TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE])
-        assertTrue(result.task(':utilsJar').outcome in [TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE])
-        assertTrue(Files.exists(testProjectDir.resolve('build/libs/bb4-common-1.0-SNAPSHOT.jar')))
-        assertTrue(Files.exists(testProjectDir.resolve('build/libs/bb4-utils-1.0-SNAPSHOT.jar')))
-    }
-
-    @Test
     void 'application plugin creates distributions with start scripts'() {
         settingsFile.toFile().text = """
             pluginManagement {
