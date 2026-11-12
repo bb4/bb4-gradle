@@ -6,7 +6,7 @@ Successfully implemented dependency metadata preservation for multi-jar (jarMap)
 
 ## Changes Made
 
-### 1. Core Implementation (`Bb4PublishPlugin.groovy`)
+### 1. Core Implementation (`Bb4PublishPlugin`)
 
 Modified the `addPom` method to accept an `includeRuntimeDependencies` parameter:
 - When `true`, explicitly adds project dependencies to the POM's `<dependencies>` section

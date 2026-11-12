@@ -49,7 +49,7 @@ Also published from this repo:
 | `com.barrybecker4:bb4-platform` | Maven BOM of recommended bb4 library and third-party versions |
 | `com.barrybecker4:bb4-catalog` | The same versions as a Gradle version catalog |
 
-Plugin implementations live under `src/main/groovy/`. Version numbers live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml) (packaged into the plugin jar; [`Bb4DependencyVersions`](src/main/groovy/com/barrybecker4/gradle/plugins/Bb4DependencyVersions.groovy) reads the third-party keys).
+Plugin implementations live under [`src/main/kotlin/`](src/main/kotlin/com/barrybecker4/gradle/plugins/). Version numbers live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml) (packaged into the plugin jar; [`Bb4DependencyVersions`](src/main/kotlin/com/barrybecker4/gradle/plugins/Bb4DependencyVersions.kt) reads the third-party keys).
 
 ## Consume in another project
 
@@ -81,7 +81,7 @@ The settings plugin installs the `bb4Libs` catalog (not named `bb4`, which is th
 
 **build.gradle** (Groovy example):
 
-```groovy
+```text
 plugins {
     alias(bb4Libs.plugins.scala.library)
     alias(bb4Libs.plugins.publish)       // if this module publishes

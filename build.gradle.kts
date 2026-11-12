@@ -1,3 +1,4 @@
+@file:Suppress("UnstableApiUsage")
 // Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 import java.net.URI
 import java.util.regex.Pattern
@@ -78,7 +79,7 @@ repositories {
 
 testing {
     suites {
-        val functionalTest = register<JvmTestSuite>("functionalTest") {
+        register<JvmTestSuite>("functionalTest") {
             useSpock("2.3-groovy-4.0")
             dependencies {
                 implementation(project())

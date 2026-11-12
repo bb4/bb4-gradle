@@ -7,3 +7,7 @@ bin/
 *.iml
 *.ipr
 *.iws
+
+# Consumer test build outputs (HTML/deploy artifacts inspected by the IDE otherwise)
+config-cache-test/build/
+config-cache-test/dist/

@@ -39,7 +39,7 @@ All notable changes to this project are documented in this file.
 - Convention plugins: `com.barrybecker4.bb4.base`, `com.barrybecker4.bb4.scala-library`, `com.barrybecker4.bb4.publish`, `com.barrybecker4.bb4.application`.
 - `bb4 { }` extension: `archivesBaseName`, `mainClass`, `scalaVersion`.
 - Foojay toolchain resolver convention in `settings.gradle.kts` for JDK provisioning.
-- Dependency versions for consumers are defined only in `Bb4DependencyVersions.groovy` (no duplicate version catalog).
+- Dependency versions for consumers are defined only in `Bb4DependencyVersions` (no duplicate version catalog).
 - `publishArtifacts` task (root project and when `bb4.publish` applied).
 
 ### Fixed
@@ -56,4 +56,6 @@ All notable changes to this project are documented in this file.
 - [docs/migration-from-scripts.md](docs/migration-from-scripts.md) for 1.x → 2.x.
 - Scaladoc jar sources use scaladoc output (not javadoc) in publish plugin.
 - Dropped invalid publishing of raw `.asc` files as extra artifacts.
-[2.0.0]: https://github.com/bb4/bb4-gradle/compare/1.9.x...HEAD
+
+[Unreleased]: https://github.com/bb4/bb4-gradle/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/bb4/bb4-gradle/compare/1.9.x...v2.0.0
