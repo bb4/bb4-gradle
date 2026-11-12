@@ -200,7 +200,9 @@ Run the tests locally:
 ./gradlew test
 ```
 
-The CI workflow (`.github/workflows/ci.yml`) runs the suite on every push and pull request.
+The CI workflow (`.github/workflows/ci.yml`) calls the org reusable
+[`bb4-ci`](https://github.com/bb4/.github/blob/main/.github/workflows/bb4-ci.yml) workflow
+on every push and pull request (`build test`, SNAPSHOT publish on `main`).
 
 ## Publish this project (`bb4-gradle`)
 

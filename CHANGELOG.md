@@ -19,7 +19,7 @@ All notable changes to this project are documented in this file.
 - **Org reusable CI ([#43](https://github.com/bb4/bb4-gradle/issues/43)):** shared workflow
   [`bb4-ci.yml`](https://github.com/bb4/.github/blob/main/.github/workflows/bb4-ci.yml) and
   [`downstream-dispatch.json`](https://github.com/bb4/.github/blob/main/downstream-dispatch.json)
-  in `bb4/.github` (consumers switch in follow-up PRs).
+  in `bb4/.github`. This repo’s CI now calls that workflow (`build test` + SNAPSHOT publish).
 
 ### Changed
 
