@@ -39,7 +39,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 | `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4Libs` version catalog, sibling `includeBuild` substitution |
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, core test deps (JUnit 5, ScalaTest), jar/manifest conventions; optional `bb4.htmlReports` |
-| `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
+| `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional legacy `jarMap` multi-artifact mode (compat only) |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, `bb4.apps` → `run*` / `create*App`, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
 Also published from this repo:
@@ -114,7 +114,7 @@ bb4 {
     //     enabled = true
     // }
     
-    // Optional: multi-artifact publishing (when using bb4.publish)
+    // Optional legacy: multi-artifact publishing via jarMap (compat only; prefer one artifact per repo)
     // jarMap.put('common', [include: ['com/example/common/**']])
     // jarMap.put('ui', [include: ['com/example/ui/**'], exclude: ['**/*Test.class']])
 
@@ -126,12 +126,13 @@ bb4 {
     // Optional: schema root for deploySchemas (default source/schema)
     // schemaDirectory.set(layout.projectDirectory.dir('source/schema'))
 
-    // Optional: native installers (requires apps/appMap + jarMap + packaging/icons/<appId>/)
+    // Optional: native installers (requires apps/appMap + LICENSE + packaging/icons/<appId>/)
+    // Uses the project jar as --main-jar when jarMap is empty.
     // jpackage {
     //     enabled = true
     //     packageIdentifierPrefix = 'com.example'
     //     defaultMainClass = 'com.example.Main'
-    //     mainJarKey = { appId, props -> appId }           // or a fixed jarMap key
+    //     // mainJarKey = { appId, props -> appId }  // only when jarMap is non-empty
     //     javaOptions = { appId, props -> ['-ea', '-Dfile.encoding=UTF-8'] }
     //     arguments = { appId, props -> [] }               // each element -> --arguments
     //     // consoleDesktopTemplate = layout.projectDirectory.file('packaging/linux-console/template.desktop')
@@ -141,13 +142,20 @@ bb4 {
 
 Each library keeps its own release version in the catalog. A one-library hotfix is: publish that library, bump its line in `gradle/libs.versions.toml`, and republish `bb4-catalog` / `bb4-platform`. An explicit module version in a consumer build overrides the BOM constraint.
 
+### Library vs app repos
+
+Apply `bb4.publish` only when another project may depend on your Maven coordinates.
+App / installer-only repos (`bb4-games`, `bb4-puzzles`, `bb4-simulations`, `bb4-adventure`,
+`bb4-aikido-app`, `bb4-Q-learning`, `bb4-experimentation`, and similar leaf apps) should use
+`bb4.scala-library` + `bb4.application` (or custom `run*` tasks) **without** `bb4.publish`.
+
 Apply only what you need:
 
 - **Settings** → `com.barrybecker4.bb4.settings` (once per repo). Delete hand-written Foojay and library `includeBuild` blocks when adopting it.
 - **Library** → `alias(bb4Libs.plugins.scala.library)` (applies **base** conventions internally). Use **`bb4Libs.plugins.base` alone** only if you want toolchain/repos without applying Scala.
-- **Publish to Sonatype** → add `alias(bb4Libs.plugins.publish)`.
+- **Publish to Sonatype** → add `alias(bb4Libs.plugins.publish)` (libraries only).
 - **CLI / dist / deploy** → add `alias(bb4Libs.plugins.application)`. Configure `bb4.apps` (or legacy `appMap`) so the plugin registers `run*`, `create*App` start scripts, and deploy helpers. Schemas copy from `bb4.schemaDirectory` (default `source/schema`). Prefer `installDist` over the removed `copyToLib` task.
-- **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `bb4.apps` (or legacy appMap), `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`). Release CI can call the reusable workflow [`bb4/.github/.github/workflows/jpackage-release.yml`](https://github.com/bb4/.github/blob/main/.github/workflows/jpackage-release.yml).
+- **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `bb4.apps` (or legacy appMap), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Uses the project `jar` as `--main-jar` when `jarMap` is empty (`bb4.publish` not required). Legacy `jarMap` remains for multi-artifact publish compat only. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`). Release CI can call the reusable workflow [`bb4/.github/.github/workflows/jpackage-release.yml`](https://github.com/bb4/.github/blob/main/.github/workflows/jpackage-release.yml).
 
 ### Plugin composition and ordering
 
@@ -166,8 +174,8 @@ The plugins are designed to work in **any application order**:
 | `bb4.base` + `java-library` + `bb4.publish` | Plain Java library with Maven Central publishing (sources + javadoc); set `bb4.repository` / `archivesBaseName` on the extension |
 | `bb4.scala-library` | Scala + Java library (includes `bb4.base` internally) |
 | `bb4.scala-library` + `bb4.publish` | Scala library with publishing (sources + javadoc + scaladoc) |
-| `bb4.scala-library` + `bb4.application` | Scala application with `bb4.mainClass` → `application.mainClass` wiring |
-| `bb4.scala-library` + `bb4.publish` + `bb4.application` | Full-featured Scala app with publishing and distribution |
+| `bb4.scala-library` + `bb4.application` | App / installer-only Scala project (`bb4.mainClass` wired; no Central publish) |
+| `bb4.scala-library` + `bb4.publish` + `bb4.application` | Scala app that also publishes library coordinates (rare) |
 
 Source layout expected by `scala-library`:
 

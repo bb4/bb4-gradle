@@ -157,9 +157,15 @@ jobs:
       contents: write
 ```
 
-## `jarMap` (multi-jar publications)
+## `jarMap` (multi-jar publications) — deprecated / compat only
 
-When `bb4.publish` is applied and you need to publish multiple artifacts from one project, configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
+`jarMap` slices one compilation into many Maven artifacts. It remains temporarily for
+legacy multi-artifact publishing. Prefer **one artifact per library repo**. App /
+installer-only repos should not use `jarMap` or `bb4.publish` at all — jpackage uses
+the project `jar` when `jarMap` is empty.
+
+When `bb4.publish` is applied and you still need multiple artifacts from one project,
+configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:
 
 ### Dependency Metadata
 
@@ -167,6 +173,25 @@ Each `jarMap` publication automatically includes runtime dependencies in its POM
 - **`implementation`** dependencies → `compile` scope (available at compile-time and runtime for consumers)
 - **`runtimeOnly`** dependencies → `runtime` scope (available only at runtime for consumers)
 
-This ensures that consumers of split artifacts (e.g., `bb4-common`, `bb4-ui`) receive required external dependencies (Scala library, Guava, etc.) transitively without manual reconstruction.
+This ensures that consumers of split artifacts receive required external dependencies
+transitively without manual reconstruction.
 
-**Recommendation for new projects**: Consider using Gradle's native multi-module structure instead of `jarMap` for better IDE support, clearer dependency boundaries, and simpler configuration. The `jarMap` feature exists for legacy compatibility with existing published artifacts.
+**Recommendation**: Do not start new `jarMap` usage. Library repos publish one artifact;
+app repos drop publish entirely (see below).
+
+## Migrating app repos off publish + jarMap (#42)
+
+For each app repo (`bb4-games`, `bb4-puzzles`, `bb4-simulations`, `bb4-adventure`,
+`bb4-aikido-app`, `bb4-Q-learning`, `bb4-experimentation`):
+
+1. Require a `bb4-gradle` version that supports jpackage without jarMap.
+2. Remove `alias(bb4Libs.plugins.publish)` / `bb4.publish`.
+3. Delete all `jarMap` / `ext.jarMap` and Sonatype publish-throttle `afterEvaluate` blocks.
+4. Keep `scala-library` + `application` (or existing custom `run*` tasks).
+5. For jpackage: remove `mainJarKey` if it only pointed at a jarMap key; keep `apps`, icons,
+   `packageIdentifierPrefix`.
+6. CI: stop `publishArtifacts` / Central credentials; keep build/test and installer workflows.
+7. README: describe as app / installers only, not published to Sonatype.
+
+After all app repos migrate, upgrade `bb4-gradle` again to a release that removes jarMap entirely.
+Optional: update `bb4-website` so leaf apps are not described as deployed to Sonatype.

@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **jpackage without jarMap ([#42](https://github.com/bb4/bb4-gradle/issues/42)):**
+  When `jarMap` is empty, native installers use the project `jar` as `--main-jar`
+  (`bb4.publish` not required). Library-vs-app guidance: leaf app repos should not apply
+  `bb4.publish`. `jarMap` remains temporarily for multi-artifact library publishing compat.
+
 ### Fixed
 
 - **Source/resource overlap ([#41](https://github.com/bb4/bb4-gradle/issues/41)):** `bb4.scala-library` excludes `**/*.java` and `**/*.scala` from main/test resources while still packaging co-located assets like `package.png`. Main `jar` and jarMap output jars no longer set `DuplicatesStrategy.EXCLUDE` for that bug. `sourcesJar` still uses `EXCLUDE` because `allSource` unions overlapping source/resource roots and would otherwise duplicate co-located assets.
