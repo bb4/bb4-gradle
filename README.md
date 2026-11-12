@@ -38,7 +38,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 |-----------|---------|
 | `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4Libs` version catalog, sibling `includeBuild` substitution |
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
-| `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, core test deps (JUnit 5, ScalaTest), jar/manifest conventions; optional `bb4.htmlReports` |
+| `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, core test deps (JUnit 5.14 + ScalaTest, no Vintage), default Scala flags (`-deprecation`, `-feature`, `-Wunused:imports`), quiet failure test logging with assertions, jar/manifest conventions; optional `bb4.htmlReports` |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars (single artifact) |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, `bb4.apps` → `run*` / `create*App`, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
@@ -185,7 +185,8 @@ The plugin project includes a Gradle TestKit functional test suite in `src/test/
 
 - Plugin application and combinations (all four public plugin IDs)
 - Java/Scala compilation with toolchain configuration
-- Test engine discovery and execution (JUnit Jupiter + ScalaTest)
+- Test engine discovery and execution (JUnit Jupiter 5.14 + ScalaTest; failure-only logging, assertions on)
+- Default Scala compiler flags (`-deprecation`, `-feature`, `-Wunused:imports`)
 - Maven publication coordinates, POM metadata, and signing decisions (SNAPSHOT vs. release)
 - Application distributions and scripts (including paths with spaces and custom build directories)
 - Extension value customization

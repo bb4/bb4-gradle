@@ -188,6 +188,51 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
+    void 'scala-library sets default Scala flags and quiet failure test logging'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-scala-flags'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            task assertCompileAndTestConventions {
+                doLast {
+                    def compileScala = tasks.named('compileScala').get()
+                    def params = compileScala.scalaCompileOptions.additionalParameters ?: []
+                    assert params.contains('-deprecation')
+                    assert params.contains('-feature')
+                    assert params.contains('-Wunused:imports')
+                    assert !params.contains('-Werror')
+
+                    def testTask = tasks.named('test', Test).get()
+                    assert testTask.enableAssertions
+                    def logging = testTask.testLogging
+                    assert logging.exceptionFormat.name() == 'FULL'
+                    assert logging.showExceptions
+                    assert logging.showCauses
+                    assert logging.showStackTraces
+                    assert !logging.showStandardStreams
+                    assert logging.events.collect { it.name().toLowerCase() } == ['failed']
+                }
+            }
+        """
+
+        def result = runGradle('assertCompileAndTestConventions')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':assertCompileAndTestConventions').outcome)
+    }
+
+    @Test
     void 'scala-library omits domain deps IDE plugins and html reporter stack by default'() {
         settingsFile.toFile().text = """
             pluginManagement {

@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Shared Scala flags and test logging ([#43](https://github.com/bb4/bb4-gradle/issues/43)):**
+  `bb4.scala-library` now sets `-deprecation`, `-feature`, and `-Wunused:imports` on all
+  `ScalaCompile` tasks (`-Werror` remains opt-in). Test tasks keep JUnit Platform engines
+  `scalatest` + `junit-jupiter` (no Vintage), enable assertions, and use quiet failure-only
+  logging with full stack traces (matching the former bb4-games pattern).
+
 ### Changed
 
 - **Removed jarMap ([#42](https://github.com/bb4/bb4-gradle/issues/42)):**

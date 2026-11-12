@@ -8,7 +8,10 @@ import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.scala.ScalaPlugin
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.scala.ScalaCompile
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.jvm.tasks.Jar
 
 class Bb4ScalaLibraryPlugin : Plugin<Project> {
@@ -56,9 +59,28 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             }
         }
 
+        project.tasks.withType(ScalaCompile::class.java).configureEach { compile ->
+            val params = (compile.scalaCompileOptions.additionalParameters ?: emptyList()).toMutableList()
+            DEFAULT_SCALA_FLAGS.forEach { flag ->
+                if (!params.contains(flag)) {
+                    params.add(flag)
+                }
+            }
+            compile.scalaCompileOptions.additionalParameters = params
+        }
+
         project.tasks.withType(Test::class.java).configureEach { test ->
             test.useJUnitPlatform {
                 it.includeEngines("scalatest", "junit-jupiter")
+            }
+            test.enableAssertions = true
+            test.testLogging { logging ->
+                logging.events(TestLogEvent.FAILED)
+                logging.exceptionFormat = TestExceptionFormat.FULL
+                logging.showExceptions = true
+                logging.showCauses = true
+                logging.showStackTraces = true
+                logging.showStandardStreams = false
             }
         }
 
@@ -89,5 +111,14 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
         }
 
         project.defaultTasks = listOf("build")
+    }
+
+    companion object {
+        /** Shared defaults; `-Werror` stays opt-in per consumer. */
+        val DEFAULT_SCALA_FLAGS: List<String> = listOf(
+            "-deprecation",
+            "-feature",
+            "-Wunused:imports",
+        )
     }
 }
