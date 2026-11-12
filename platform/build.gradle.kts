@@ -44,6 +44,10 @@ fun loadLibraryConstraints(tomlText: String): List<Pair<String, String>> {
     val matcher = libraryPattern.matcher(librariesSection)
     while (matcher.find()) {
         val module = matcher.group(1)
+        // Avoid self-constraint on the platform BOM publication.
+        if (module == "com.barrybecker4:bb4-platform") {
+            continue
+        }
         val versionRef = matcher.group(2)
         val moduleVersion = versions[versionRef]
             ?: error("Missing version.ref '$versionRef' for module $module in catalog toml")

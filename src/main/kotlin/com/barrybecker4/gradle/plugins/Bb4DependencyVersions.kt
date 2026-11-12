@@ -28,8 +28,5 @@ object Bb4DependencyVersions {
     val SCALA_XML: String = Bb4CatalogToml.version(TOML, "scala-xml")
 
     @JvmField
-    val PEGDOWN: String = Bb4CatalogToml.version(TOML, "pegdown")
-
-    @JvmField
     val FLEXMARK: String = Bb4CatalogToml.version(TOML, "flexmark")
 }

@@ -18,8 +18,8 @@ scalatest = "3.2.20"
 scalatest-plus-junit5 = "3.2.20.0"
 junit = "5.14.4"
 scala-xml = "2.5.0"
-pegdown = "1.6.0"
 flexmark = "0.64.8"
+gson = "2.15.0"
 
 [libraries]
 common = { module = "com.barrybecker4:bb4-common", version.ref = "common" }
@@ -37,8 +37,9 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 scalatest = { module = "org.scalatest:scalatest_3", version.ref = "scalatest" }
 scalatest-plus-junit5 = { module = "org.scalatestplus:junit-5-14_3", version.ref = "scalatest-plus-junit5" }
 scala-xml = { module = "org.scala-lang.modules:scala-xml_3", version.ref = "scala-xml" }
-pegdown = { module = "org.pegdown:pegdown", version.ref = "pegdown" }
 flexmark = { module = "com.vladsch.flexmark:flexmark-all", version.ref = "flexmark" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+bb4-platform = { module = "com.barrybecker4:bb4-platform", version.ref = "bb4-gradle" }
 
 # Plugin aliases are versionless so includeBuild('../bb4-gradle') works.
 # Default versions come from pluginManagement (consumer settings or Bb4SettingsPlugin).
