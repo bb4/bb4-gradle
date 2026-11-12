@@ -8,7 +8,8 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 
 | Item | Version |
 |------|---------|
-| Gradle (wrapper) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
+| Gradle (minimum) | **9.1+** (enforced by `com.barrybecker4.bb4.settings`) |
+| Gradle (wrapper in this repo) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
 | Java toolchain | **25** (enforced by `com.barrybecker4.bb4.base`) |
 | Scala (default in plugins) | **3.10.0** (override via `bb4 { scalaVersion.set("…") }` if needed) |
 
@@ -29,49 +30,70 @@ tasks.withType(JavaCompile).configureEach {
 
 For Scala projects targeting older runtimes, configure the Scala compiler's `-release` or `-target` flag similarly. Note that using a newer toolchain with an older release target is the recommended approach for forward compatibility while maintaining backward runtime support.
 
-**Minimum supported:** Gradle 8.5+ and JDK 21+ are required to use these plugins.
+**Minimum supported:** Gradle **9.1+** and JDK **25**.
 
 ## Published plugins
 
 | Plugin ID | Purpose |
 |-----------|---------|
+| `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4` version catalog, sibling `includeBuild` substitution |
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
-Plugin implementations live under `src/main/groovy/`.
+Also published from this repo:
 
-**Dependency versions** (Scala, ScalaTest, JUnit, etc. applied to your projects by these plugins) are maintained in one place: [`Bb4DependencyVersions.groovy`](src/main/groovy/com/barrybecker4/gradle/plugins/Bb4DependencyVersions.groovy).
+| Coordinate | Purpose |
+|------------|---------|
+| `com.barrybecker4:bb4-platform` | Maven BOM of recommended bb4 library and third-party versions |
+| `com.barrybecker4:bb4-catalog` | The same versions as a Gradle version catalog |
+
+Plugin implementations live under `src/main/groovy/`. Version numbers live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml) (packaged into the plugin jar; [`Bb4DependencyVersions`](src/main/groovy/com/barrybecker4/gradle/plugins/Bb4DependencyVersions.groovy) reads the third-party keys).
 
 ## Consume in another project
 
-Use the **Gradle Plugin Portal** and/or your Maven repo where you publish `bb4-gradle`, plus matching **plugin marker** artifacts (`*.gradle.plugin`).
+Plugins publish to Maven Central / snapshots (not only the Plugin Portal). Gradle resolves the settings plugin before that plugin can add repositories, so a short `pluginManagement` block remains:
 
 **settings.gradle** (or `.kts`):
 
 ```groovy
 pluginManagement {
+    def sibling = new File(settings.settingsDir, '../bb4-gradle')
+    // Included builds must not include bb4-gradle again.
+    if (sibling.directory && gradle.parent == null) includeBuild(sibling)
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        // Only needed when consuming a -SNAPSHOT plugin build:
-        // maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
+        maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 }
+plugins {
+    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+}
 ```
+
+The settings plugin installs the `bb4` catalog, applies Foojay, and `includeBuild`s neighboring `bb4-*` checkouts. Pass `-Pbb4.includeSiblings=false` to disable sibling substitution.
 
 **build.gradle** (Groovy example):
 
 ```groovy
 plugins {
-    id 'com.barrybecker4.bb4.scala-library' version '2.0.0'
-    id 'com.barrybecker4.bb4.publish' version '2.0.0'   // if this module publishes
-    id 'com.barrybecker4.bb4.application' version '2.0.0' // optional, for apps
+    alias(bb4.plugins.scala.library)
+    alias(bb4.plugins.publish)       // if this module publishes
+    alias(bb4.plugins.application)   // optional, for apps
 }
 
 group = 'com.barrybecker4'
-version = '1.0-SNAPSHOT'
+version = '3.0-SNAPSHOT'
+
+dependencies {
+    implementation bb4.common
+    implementation bb4.math
+    // Or without the catalog:
+    // implementation platform('com.barrybecker4:bb4-platform:3.0-SNAPSHOT')
+    // implementation 'com.barrybecker4:bb4-common'
+}
 
 bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
@@ -95,11 +117,14 @@ bb4 {
 }
 ```
 
+Each library keeps its own release version in the catalog. A one-library hotfix is: publish that library, bump its line in `gradle/libs.versions.toml`, and republish `bb4-catalog` / `bb4-platform`. An explicit module version in a consumer build overrides the BOM constraint.
+
 Apply only what you need:
 
-- **Library** → `com.barrybecker4.bb4.scala-library` (applies **base** conventions internally: Java 25 toolchain, repos, resolution). Use **`com.barrybecker4.bb4.base` alone** only if you want toolchain/repos without applying Scala.
-- **Publish to Sonatype** → add `com.barrybecker4.bb4.publish`.
-- **CLI / dist / deploy** → add `com.barrybecker4.bb4.application`.
+- **Settings** → `com.barrybecker4.bb4.settings` (once per repo). Delete hand-written Foojay and library `includeBuild` blocks when adopting it.
+- **Library** → `alias(bb4.plugins.scala.library)` (applies **base** conventions internally). Use **`bb4.plugins.base` alone** only if you want toolchain/repos without applying Scala.
+- **Publish to Sonatype** → add `alias(bb4.plugins.publish)`.
+- **CLI / dist / deploy** → add `alias(bb4.plugins.application)`.
 - **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `ext.appMap`, `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`).
 
 ### Plugin composition and ordering

@@ -1,0 +1,48 @@
+[versions]
+bb4-gradle = "0.0.0"
+common = "3.0-SNAPSHOT"
+math = "3.0-SNAPSHOT"
+ui = "3.0-SNAPSHOT"
+sound = "3.0-SNAPSHOT"
+optimization = "3.0-SNAPSHOT"
+expression = "3.0-SNAPSHOT"
+imageproc = "3.0-SNAPSHOT"
+shortest-paths = "3.0-SNAPSHOT"
+a-star = "3.0-SNAPSHOT"
+gradle = "9.1"
+java = "25"
+foojay = "1.0.0"
+scala = "3.10.0"
+vecmath = "1.3.1"
+scalatest = "3.2.20"
+scalatest-plus-junit5 = "3.2.20.0"
+junit = "5.14.4"
+scala-xml = "2.5.0"
+pegdown = "1.6.0"
+flexmark = "0.64.8"
+
+[libraries]
+common = { module = "com.barrybecker4:bb4-common", version.ref = "common" }
+math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
+ui = { module = "com.barrybecker4:bb4-ui", version.ref = "ui" }
+sound = { module = "com.barrybecker4:bb4-sound", version.ref = "sound" }
+optimization = { module = "com.barrybecker4:bb4-optimization", version.ref = "optimization" }
+expression = { module = "com.barrybecker4:bb4-expression", version.ref = "expression" }
+imageproc = { module = "com.barrybecker4:bb4-imageproc", version.ref = "imageproc" }
+shortest-paths = { module = "com.barrybecker4:bb4-shortest-paths", version.ref = "shortest-paths" }
+a-star = { module = "com.barrybecker4:bb4-A-star", version.ref = "a-star" }
+scala3-library = { module = "org.scala-lang:scala3-library_3", version.ref = "scala" }
+vecmath = { module = "java3d:vecmath", version.ref = "vecmath" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+scalatest = { module = "org.scalatest:scalatest_3", version.ref = "scalatest" }
+scalatest-plus-junit5 = { module = "org.scalatestplus:junit-5-14_3", version.ref = "scalatest-plus-junit5" }
+scala-xml = { module = "org.scala-lang.modules:scala-xml_3", version.ref = "scala-xml" }
+pegdown = { module = "org.pegdown:pegdown", version.ref = "pegdown" }
+flexmark = { module = "com.vladsch.flexmark:flexmark-all", version.ref = "flexmark" }
+
+[plugins]
+base = { id = "com.barrybecker4.bb4.base", version.ref = "bb4-gradle" }
+scala-library = { id = "com.barrybecker4.bb4.scala-library", version.ref = "bb4-gradle" }
+publish = { id = "com.barrybecker4.bb4.publish", version.ref = "bb4-gradle" }
+application = { id = "com.barrybecker4.bb4.application", version.ref = "bb4-gradle" }
+settings = { id = "com.barrybecker4.bb4.settings", version.ref = "bb4-gradle" }

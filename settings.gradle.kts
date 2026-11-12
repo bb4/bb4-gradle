@@ -10,3 +10,5 @@ plugins {
 }
 
 rootProject.name = "bb4-gradle"
+
+include("platform")
