@@ -119,6 +119,49 @@ class Bb4JpackageFunctionalTest {
         assertTrue(result.output.contains('Missing jpackage icon'))
     }
 
+    @Test
+    void 'jpackage works without jarMap or publish plugin'() {
+        settingsFile.toFile().text = settingsGradle()
+        writeIcons('demo')
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.application'
+            }
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+            bb4 {
+                archivesBaseName.set('bb4-demo')
+                mainClass.set('com.test.Main')
+                apps.put('demo', [
+                    title: 'Demo App', mainClass: 'com.test.Main',
+                    command: 'demo', description: 'A demo', longDescription: 'd'
+                ])
+                jpackage {
+                    enabled = true
+                    packageIdentifierPrefix = 'com.test.demo'
+                    jpackageExecutable = file('${stubJpackage.toAbsolutePath().toString().replace('\\', '/')}')
+                    defaultMainClass = 'com.test.Main'
+                }
+            }
+        """
+
+        def result = runGradle('jpackageDemo', '--stacktrace')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':jpackageDemo').outcome)
+
+        def outDir = testProjectDir.resolve('build/jpackage/demo').toFile()
+        def renamed = new File(outDir, "bb4-demo-1.0.${installerType}")
+        assertTrue(renamed.isFile(), "expected renamed installer ${renamed}")
+
+        def argsText = new File(outDir, 'jpackage-args.txt').text
+        assertTrue(argsText.contains('--main-jar'))
+        assertTrue(
+            argsText.contains('bb4-demo') || argsText.contains('jpackage-test'),
+            "expected project jar name in --main-jar, got:\n${argsText}"
+        )
+        assertFalse(argsText.contains('demoJar'), "must not require jarMap demoJar task")
+    }
+
     private static String enabledBuild(String jpackageBody) {
         """
             plugins {

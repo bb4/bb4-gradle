@@ -24,7 +24,9 @@ open class Bb4JpackageExtension @Inject constructor(objects: ObjectFactory) {
 
     /**
      * Closure `(String appId, Map props) -> String` selecting the jarMap key
-     * whose jar is passed as `--main-jar`. Defaults to the app id.
+     * whose jar is passed as `--main-jar` when jarMap is non-empty.
+     * Ignored when jarMap is empty — jpackage uses the project `jar` task output.
+     * Defaults to the app id.
      */
     var mainJarKey: Any = { appId: String, _: Map<*, *> -> appId }
 
