@@ -1,19 +1,22 @@
 // Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 import java.net.URI
 import java.util.regex.Pattern
-import org.gradle.api.Task
 
 plugins {
     groovy
     `java-gradle-plugin`
     `maven-publish`
     signing
+    id("org.cyclonedx.bom") version "3.5.1"
 }
 
 group = "com.barrybecker4"
 version = "3.0-SNAPSHOT"
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
+
+// Used by Bb4PomSupport / publishing docs (artifact name may differ from GitHub repo name).
+extra["bb4.repository"] = "bb4-gradle"
 
 java {
     withJavadocJar()
@@ -94,6 +97,8 @@ dependencies {
     // Foojay convention plugin so Bb4SettingsPlugin can apply it without a consumer version.
     // Implementation jar (Plugin Portal marker points here).
     implementation("org.gradle.toolchains:foojay-resolver:1.0.0")
+    // CycloneDX so Bb4PublishPlugin can apply org.cyclonedx.bom on consumers.
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.spockframework:spock-core:2.5-groovy-4.0")
@@ -148,13 +153,3 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 apply(from = "gradle/bb4-central-publishing.gradle.kts")
-
-tasks.register<Task>("publishArtifacts") {
-    description =
-        "Publish artifacts to Central snapshot or staging repository. " +
-            "For releases, also POST …/manual/upload/defaultRepository/com.barrybecker4 " +
-            "(see docs/publishing-sonatype.md) or the Portal stays empty."
-    group = "publishing"
-    dependsOn(tasks.named("publish"))
-    dependsOn(project(":platform").tasks.named("publish"))
-}

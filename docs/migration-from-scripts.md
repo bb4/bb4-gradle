@@ -70,9 +70,8 @@ bb4 {
    - Replace `buildscript` / `apply from` with `plugins { }` as above.
    - Delete redundant `dependencies` / `compileOptions` that duplicate plugin defaults.
    - Run `./gradlew clean test jar` (and `distZip` / `run` for apps).
-   - If publishing a **release** (non-SNAPSHOT): after `./gradlew publish`, run the Staging API
-     **promote** curl and click **Publish** in the Central Portal — see
-     [docs/publishing-sonatype.md](../docs/publishing-sonatype.md). Same process as releasing bb4-gradle.
+   - If publishing: `./gradlew publishArtifacts` (one task for snapshots and releases; see
+     [docs/publishing-sonatype.md](../docs/publishing-sonatype.md)).
 3. Repeat for each bb4 repo (libraries first, then applications).
 
 ## Compatibility matrix
