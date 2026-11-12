@@ -256,11 +256,11 @@ class Bb4PublishPlugin implements Plugin<Project> {
             name = project.name
             packaging = 'jar'
             description = "${project.name} java code."
-            url = "https://github.com/barrybecker4/${project.name}"
+            url = "https://github.com/bb4/${project.name}"
             scm {
-                url = "scm:git@github.com:barrybecker4/${project.name}.git"
-                connection = "scm:git@github.com:barrybecker4/${project.name}.git"
-                developerConnection = "scm:git@github.com:barrybecker4/${project.name}.git"
+                url = "https://github.com/bb4/${project.name}"
+                connection = "scm:git:https://github.com/bb4/${project.name}.git"
+                developerConnection = "scm:git:ssh://git@github.com/bb4/${project.name}.git"
             }
             licenses {
                 license {

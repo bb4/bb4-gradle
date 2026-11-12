@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Published Maven POM metadata:** Updated project URL and SCM URLs to point to the new `bb4` GitHub organization (`https://github.com/bb4/`) instead of the legacy `barrybecker4` user account. Maven groupId, plugin IDs, package names, and developer identities remain unchanged.
+
 ### Added
 
 - **`bb4.application`:** Opt-in native installers via `bb4.jpackage { enabled = true … }`. Registers `jpackage<AppId>` and `jpackageAllApps` from `ext.appMap` (skipping `deploy: false`), syncs `jarMap` jars into `installDist` `lib/`, and renames artifacts to `bb4-<appId>-<version>.{dmg,msi,deb}`. Configure `packageIdentifierPrefix`, `mainJarKey`, `defaultMainClass`, `javaOptions`, `arguments`, optional `consoleDesktopTemplate`, and optional `jpackageExecutable` (for tests). App-specific launch args stay in the consuming project.
@@ -44,4 +48,4 @@ All notable changes to this project are documented in this file.
 - [docs/migration-from-scripts.md](docs/migration-from-scripts.md) for 1.x → 2.x.
 - Scaladoc jar sources use scaladoc output (not javadoc) in publish plugin.
 - Dropped invalid publishing of raw `.asc` files as extra artifacts.
-[2.0.0]: https://github.com/barrybecker4/bb4-gradle/compare/1.9.x...HEAD
+[2.0.0]: https://github.com/bb4/bb4-gradle/compare/1.9.x...HEAD
