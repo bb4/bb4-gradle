@@ -2,6 +2,7 @@
 
 package com.barrybecker4.gradle.plugins
 
+import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
@@ -21,11 +22,21 @@ class Bb4Extension {
      */
     final MapProperty<String, Map<String, Object>> jarMap
 
+    /**
+     * Opt-in native installer (jpackage) configuration.
+     */
+    final Bb4JpackageExtension jpackage
+
     @Inject
     Bb4Extension(ObjectFactory objects) {
         archivesBaseName = objects.property(String).convention('')
         mainClass = objects.property(String).convention('')
         scalaVersion = objects.property(String).convention(Bb4DependencyVersions.SCALA)
         jarMap = objects.mapProperty(String, Map).convention([:])
+        jpackage = objects.newInstance(Bb4JpackageExtension)
+    }
+
+    void jpackage(Action<? super Bb4JpackageExtension> action) {
+        action.execute(jpackage)
     }
 }

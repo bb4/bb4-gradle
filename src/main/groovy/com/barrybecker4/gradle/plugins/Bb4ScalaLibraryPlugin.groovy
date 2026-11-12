@@ -64,6 +64,7 @@ class Bb4ScalaLibraryPlugin implements Plugin<Project> {
             project.extensions.getByType(BasePluginExtension).archivesName.set(baseName)
             def mainClassValue = bb4.mainClass.get()
             project.tasks.named('jar', Jar).configure { Jar jar ->
+                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                 jar.archiveFileName.set("${baseName}-${project.version}.jar")
                 jar.manifest {
                     it.attributes(

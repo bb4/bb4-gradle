@@ -77,7 +77,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
         // have set version and jarMap — both are often assigned after the plugins {} block in consuming builds.
         project.afterEvaluate {
             def bb4Extension = project.extensions.findByType(Bb4Extension)
-            def jarMap = resolveJarMap(project, bb4Extension)
+            def jarMap = Bb4JarMap.resolve(project, bb4Extension)
             def multiJar = !jarMap.isEmpty()
             def hasScala = project.plugins.hasPlugin('scala')
 
@@ -90,7 +90,7 @@ class Bb4PublishPlugin implements Plugin<Project> {
                 }
 
                 jarMap.each { String key, Map spec ->
-                    validateJarMapEntry(key, spec)
+                    Bb4JarMap.validateEntry(key, spec)
                     def includes = spec['include'] as Iterable<?> ?: []
                     def excludes = (spec['exclude'] as Iterable<?>)?.collect { it.toString() } ?: []
 
@@ -355,73 +355,6 @@ class Bb4PublishPlugin implements Plugin<Project> {
             }
         }
         return null
-    }
-
-    /**
-     * Resolve jarMap from bb4 extension (preferred) or legacy ext.jarMap.
-     * Validates the structure and provides clear error messages.
-     */
-    private static Map<String, Map> resolveJarMap(Project project, Bb4Extension bb4Extension) {
-        def extensionJarMap = bb4Extension != null ? bb4Extension.jarMap.getOrElse([:]) : [:]
-        def legacyJarMap = project.extensions.extraProperties.has('jarMap') ? 
-            project.extensions.extraProperties.get('jarMap') : null
-        
-        if (!extensionJarMap.isEmpty() && legacyJarMap != null) {
-            throw new IllegalStateException(
-                "bb4 Gradle: jarMap configured in both bb4 {} extension and ext.jarMap. " +
-                "Use only bb4 { jarMap.put('key', [...]) } — ext.jarMap is deprecated."
-            )
-        }
-        
-        if (!extensionJarMap.isEmpty()) {
-            return new LinkedHashMap<String, Map>(extensionJarMap)
-        }
-        
-        if (legacyJarMap != null) {
-            if (!(legacyJarMap instanceof Map)) {
-                throw new IllegalArgumentException(
-                    "bb4 Gradle: ext.jarMap must be a Map, got ${legacyJarMap.getClass().name}. " +
-                    "Use bb4 { jarMap.put('key', [include: [...]]) } instead."
-                )
-            }
-            def out = new LinkedHashMap<String, Map>()
-            legacyJarMap.each { k, v ->
-                if (!(k instanceof String)) {
-                    throw new IllegalArgumentException(
-                        "bb4 Gradle: jarMap key must be a String, got ${k.getClass().name} for key: $k"
-                    )
-                }
-                if (!(v instanceof Map)) {
-                    throw new IllegalArgumentException(
-                        "bb4 Gradle: jarMap value for '$k' must be a Map with 'include' and optional 'exclude', " +
-                        "got ${v.getClass().name}"
-                    )
-                }
-                out[k as String] = v as Map
-            }
-            return out
-        }
-        
-        return [:]
-    }
-    
-    /**
-     * Validate a single jarMap entry has required 'include' field.
-     */
-    private static void validateJarMapEntry(String key, Map spec) {
-        if (!spec.containsKey('include')) {
-            throw new IllegalArgumentException(
-                "bb4 Gradle: jarMap entry '$key' must have 'include' field with file patterns. " +
-                "Example: bb4 { jarMap.put('$key', [include: ['com/example/$key/**']]) }"
-            )
-        }
-        def include = spec['include']
-        if (include == null || (include instanceof Collection && ((Collection) include).isEmpty())) {
-            throw new IllegalArgumentException(
-                "bb4 Gradle: jarMap entry '$key' has empty 'include'. " +
-                "Provide at least one file pattern."
-            )
-        }
     }
 
     /**

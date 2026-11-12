@@ -1,8 +1,8 @@
+// Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 import java.net.URI
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.publish.maven.MavenPublication
-// Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 
 /** Legacy OSSRH hosts return 405 after EOL; ~/.gradle/gradle.properties often still overrides with these. */
 private fun Project.resolveBb4SnapshotRepoUrl(): String {
@@ -47,7 +47,7 @@ plugins {
 }
 
 group = "com.barrybecker4"
-version = "2.1-SNAPSHOT"
+version = "3.0-SNAPSHOT"
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
 
@@ -120,7 +120,7 @@ tasks.named("check") {
 dependencies {
     implementation(localGroovy())
     testImplementation(gradleTestKit())
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.spockframework:spock-core:2.5-groovy-4.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

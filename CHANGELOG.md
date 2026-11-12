@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`bb4.application`:** Opt-in native installers via `bb4.jpackage { enabled = true … }`. Registers `jpackage<AppId>` and `jpackageAllApps` from `ext.appMap` (skipping `deploy: false`), syncs `jarMap` jars into `installDist` `lib/`, and renames artifacts to `bb4-<appId>-<version>.{dmg,msi,deb}`. Configure `packageIdentifierPrefix`, `mainJarKey`, `defaultMainClass`, `javaOptions`, `arguments`, optional `consoleDesktopTemplate`, and optional `jpackageExecutable` (for tests). App-specific launch args stay in the consuming project.
+
 ### Fixed
 
 - **`bb4.application`:** Removed unsafe classpath wildcard manipulation from generated start scripts. The previous implementation replaced Gradle's properly quoted explicit classpath with `CLASSPATH=$(echo $APP_HOME/lib/*.jar | tr ' ' ':')`, which broke when installation paths or JAR names contained spaces and picked up unintended JARs from `lib/`. Now uses Gradle's default explicit classpath generation that works correctly with spaces and only includes declared runtime dependencies ([#16](https://github.com/bb4/bb4-gradle/issues/16)).
