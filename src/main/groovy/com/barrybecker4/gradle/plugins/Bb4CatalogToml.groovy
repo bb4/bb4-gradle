@@ -64,15 +64,29 @@ final class Bb4CatalogToml {
             builder.library(alias, group, name).versionRef(versionRef)
         }
 
-        def pluginPattern = Pattern.compile(
+        def pluginVersion = version(text, 'bb4-gradle')
+        def pluginWithVersion = Pattern.compile(
             '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*,\\s*version\\.ref\\s*=\\s*"([^"]+)"\\s*\\}',
         )
-        def pluginMatcher = pluginPattern.matcher(pluginsSection)
-        while (pluginMatcher.find()) {
-            def alias = pluginMatcher.group(1)
-            def id = pluginMatcher.group(2)
-            def versionRef = pluginMatcher.group(3)
-            builder.plugin(alias, id).versionRef(versionRef)
+        def pluginIdOnly = Pattern.compile(
+            '(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*"([^"]+)"\\s*\\}',
+        )
+        def withVersionMatcher = pluginWithVersion.matcher(pluginsSection)
+        def seen = new HashSet<String>()
+        while (withVersionMatcher.find()) {
+            def alias = withVersionMatcher.group(1)
+            seen.add(alias)
+            builder.plugin(alias, withVersionMatcher.group(2)).versionRef(withVersionMatcher.group(3))
+        }
+        def idOnlyMatcher = pluginIdOnly.matcher(pluginsSection)
+        while (idOnlyMatcher.find()) {
+            def alias = idOnlyMatcher.group(1)
+            if (seen.contains(alias)) {
+                continue
+            }
+            // PluginAliasBuilder requires a version; pluginManagement / includeBuild supply it at use site.
+            // Prefer an explicit catalog version so accessors generate; consumers still omit versions in plugins {}.
+            builder.plugin(alias, idOnlyMatcher.group(2)).version(pluginVersion)
         }
     }
 

@@ -40,9 +40,11 @@ scala-xml = { module = "org.scala-lang.modules:scala-xml_3", version.ref = "scal
 pegdown = { module = "org.pegdown:pegdown", version.ref = "pegdown" }
 flexmark = { module = "com.vladsch.flexmark:flexmark-all", version.ref = "flexmark" }
 
+# Plugin aliases are versionless so includeBuild('../bb4-gradle') works.
+# Default versions come from pluginManagement (consumer settings or Bb4SettingsPlugin).
 [plugins]
-base = { id = "com.barrybecker4.bb4.base", version.ref = "bb4-gradle" }
-scala-library = { id = "com.barrybecker4.bb4.scala-library", version.ref = "bb4-gradle" }
-publish = { id = "com.barrybecker4.bb4.publish", version.ref = "bb4-gradle" }
-application = { id = "com.barrybecker4.bb4.application", version.ref = "bb4-gradle" }
-settings = { id = "com.barrybecker4.bb4.settings", version.ref = "bb4-gradle" }
+base = { id = "com.barrybecker4.bb4.base" }
+scala-library = { id = "com.barrybecker4.bb4.scala-library" }
+publish = { id = "com.barrybecker4.bb4.publish" }
+application = { id = "com.barrybecker4.bb4.application" }
+settings = { id = "com.barrybecker4.bb4.settings" }

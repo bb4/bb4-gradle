@@ -36,7 +36,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 
 | Plugin ID | Purpose |
 |-----------|---------|
-| `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4` version catalog, sibling `includeBuild` substitution |
+| `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4Libs` version catalog, sibling `includeBuild` substitution |
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
@@ -61,35 +61,39 @@ Plugins publish to Maven Central / snapshots (not only the Plugin Portal). Gradl
 pluginManagement {
     def sibling = new File(settings.settingsDir, '../bb4-gradle')
     // Included builds must not include bb4-gradle again.
-    if (sibling.directory && gradle.parent == null) includeBuild(sibling)
+    if (sibling.directory && gradle.parent == null) includeBuild(sibling.canonicalFile)
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
         maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
+    plugins {
+        id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+    }
 }
 plugins {
-    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+    id 'com.barrybecker4.bb4.settings'
 }
 ```
 
-The settings plugin installs the `bb4` catalog, applies Foojay, and `includeBuild`s neighboring `bb4-*` checkouts. Pass `-Pbb4.includeSiblings=false` to disable sibling substitution.
+The settings plugin installs the `bb4Libs` catalog (not named `bb4`, which is the project extension), applies Foojay, and `includeBuild`s neighboring `bb4-*` checkouts. Pass `-Pbb4.includeSiblings=false` to disable sibling substitution.
 
 **build.gradle** (Groovy example):
 
 ```groovy
 plugins {
-    alias(bb4.plugins.scala.library)
-    alias(bb4.plugins.publish)       // if this module publishes
-    alias(bb4.plugins.application)   // optional, for apps
+    alias(bb4Libs.plugins.scala.library)
+    alias(bb4Libs.plugins.publish)       // if this module publishes
+    alias(bb4Libs.plugins.application)   // optional, for apps
 }
 
 group = 'com.barrybecker4'
 version = '3.0-SNAPSHOT'
 
 dependencies {
-    implementation bb4.common
-    implementation bb4.math
+    implementation bb4Libs.common
+    implementation bb4Libs.math
     // Or without the catalog:
     // implementation platform('com.barrybecker4:bb4-platform:3.0-SNAPSHOT')
     // implementation 'com.barrybecker4:bb4-common'
@@ -122,9 +126,9 @@ Each library keeps its own release version in the catalog. A one-library hotfix 
 Apply only what you need:
 
 - **Settings** → `com.barrybecker4.bb4.settings` (once per repo). Delete hand-written Foojay and library `includeBuild` blocks when adopting it.
-- **Library** → `alias(bb4.plugins.scala.library)` (applies **base** conventions internally). Use **`bb4.plugins.base` alone** only if you want toolchain/repos without applying Scala.
-- **Publish to Sonatype** → add `alias(bb4.plugins.publish)`.
-- **CLI / dist / deploy** → add `alias(bb4.plugins.application)`.
+- **Library** → `alias(bb4Libs.plugins.scala.library)` (applies **base** conventions internally). Use **`bb4Libs.plugins.base` alone** only if you want toolchain/repos without applying Scala.
+- **Publish to Sonatype** → add `alias(bb4Libs.plugins.publish)`.
+- **CLI / dist / deploy** → add `alias(bb4Libs.plugins.application)`.
 - **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `ext.appMap`, `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`).
 
 ### Plugin composition and ordering

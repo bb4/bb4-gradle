@@ -4,11 +4,12 @@ package com.barrybecker4.gradle.plugins
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.initialization.Settings
+import org.gradle.api.internal.file.FileOperations
 import org.gradle.util.GradleVersion
 
 /**
  * Settings conventions for bb4 projects: Gradle floor, Foojay, Central snapshots,
- * the {@code bb4} version catalog, and sibling {@code includeBuild} substitution.
+ * the {@code bb4Libs} version catalog, and sibling {@code includeBuild} substitution.
  */
 class Bb4SettingsPlugin implements Plugin<Settings> {
 
@@ -22,10 +23,21 @@ class Bb4SettingsPlugin implements Plugin<Settings> {
             )
         }
 
+        settings.pluginManagement.repositories.mavenLocal()
         settings.pluginManagement.repositories.gradlePluginPortal()
         settings.pluginManagement.repositories.mavenCentral()
         settings.pluginManagement.repositories.maven {
             url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        }
+
+        // Default versions for versionless catalog plugin aliases when includeBuild is not used.
+        def pluginVersion = Bb4CatalogToml.version(toml, 'bb4-gradle')
+        settings.pluginManagement.plugins {
+            id('com.barrybecker4.bb4.base') version pluginVersion
+            id('com.barrybecker4.bb4.scala-library') version pluginVersion
+            id('com.barrybecker4.bb4.publish') version pluginVersion
+            id('com.barrybecker4.bb4.application') version pluginVersion
+            id('com.barrybecker4.bb4.settings') version pluginVersion
         }
 
         settings.pluginManager.apply('org.gradle.toolchains.foojay-resolver-convention')
@@ -39,11 +51,17 @@ class Bb4SettingsPlugin implements Plugin<Settings> {
             }
         }
 
-        // Build the catalog from the packaged (rendered) toml so includeBuild of bb4-gradle
-        // works without a prior Maven publish of bb4-catalog. The published bb4-catalog artifact
-        // remains available for consumers who import it directly.
-        settings.dependencyResolutionManagement.versionCatalogs.create('bb4') { builder ->
-            Bb4CatalogToml.applyTo(builder, toml)
+        // Catalog name must not be 'bb4' — that conflicts with the project `bb4 {}` extension.
+        // Import via from(file) so versionless [plugins] entries work with includeBuild.
+        def catalogDir = new File(settings.gradle.gradleUserHomeDir, "caches/bb4-catalog/${pluginVersion}")
+        catalogDir.mkdirs()
+        def catalogFile = new File(catalogDir, 'libs.versions.toml')
+        if (!catalogFile.exists() || catalogFile.getText('UTF-8') != toml) {
+            catalogFile.setText(toml, 'UTF-8')
+        }
+        def fileOps = settings.services.get(FileOperations)
+        settings.dependencyResolutionManagement.versionCatalogs.create('bb4Libs') { builder ->
+            builder.from(fileOps.configurableFiles(catalogFile))
         }
 
         def includeSiblings = settings.providers.gradleProperty('bb4.includeSiblings')

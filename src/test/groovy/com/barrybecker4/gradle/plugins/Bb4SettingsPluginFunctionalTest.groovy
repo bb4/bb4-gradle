@@ -66,9 +66,12 @@ class Bb4SettingsPluginFunctionalTest {
                     mavenCentral()
                     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
                 }
+                plugins {
+                    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+                }
             }
             plugins {
-                id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+                id 'com.barrybecker4.bb4.settings'
             }
             rootProject.name = '${rootName}'
         """.stripIndent()
@@ -86,7 +89,7 @@ class Bb4SettingsPluginFunctionalTest {
             group = 'com.example'
             version = '1.0'
             dependencies {
-                implementation bb4.common
+                implementation bb4Libs.common
             }
             java {
                 toolchain { languageVersion = JavaLanguageVersion.of(25) }
