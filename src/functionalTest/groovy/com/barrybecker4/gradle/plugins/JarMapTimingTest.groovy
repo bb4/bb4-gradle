@@ -201,6 +201,54 @@ class JarMapTimingTest extends Specification {
         result.output.contains('Single publication created: mavenJava')
     }
 
+    def "jarMap multi-jar mode never publishes mavenJava and sets non-empty groupId"() {
+        given:
+        // Mirrors bb4-puzzles / bb4-simulations: group after plugins {}, jarMap.put inside bb4 {}.
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.publish'
+            }
+
+            group = 'com.barrybecker4'
+            version = '1.2.3-SNAPSHOT'
+
+            bb4 {
+                jarMap.put('puzzle', [include: ['com/example/puzzle/**']])
+                jarMap.put('liquid', [include: ['com/example/liquid/**']])
+            }
+
+            task checkNoMavenJava {
+                doLast {
+                    assert publishing.publications.findByName('mavenJava') == null :
+                        "mavenJava must not exist when jarMap is active"
+                    publishing.publications.withType(org.gradle.api.publish.maven.MavenPublication).each { pub ->
+                        assert pub.groupId == 'com.barrybecker4' :
+                            "publication '\${pub.name}' groupId was '\${pub.groupId}'"
+                    }
+                    def orphanTasks = tasks.names.findAll { it.contains('MavenJavaPublication') }
+                    assert orphanTasks.every { name -> !tasks.getByName(name).enabled } :
+                        "MavenJava publication tasks must be absent or disabled: \${orphanTasks}"
+                    println "Multi-jar publications: \${publishing.publications.names}"
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+            .withProjectDir(testProjectDir.toFile())
+            .withArguments('checkNoMavenJava', 'tasks', '--group=publishing', '--stacktrace')
+            .withPluginClasspath()
+            .build()
+
+        then:
+        result.task(':checkNoMavenJava').outcome == TaskOutcome.SUCCESS
+        result.output.contains('Multi-jar publications:')
+        !result.output.contains('publishMavenJavaPublicationToMavenLocal')
+        result.output.contains('publishMavenPuzzlePublicationToMavenLocal')
+        result.output.contains('publishMavenLiquidPublicationToMavenLocal')
+    }
+
     def "jarMap entry without include field fails with clear error"() {
         given:
         buildFile.toFile().text = """

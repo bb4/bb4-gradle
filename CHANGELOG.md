@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- **`bb4.publish` jarMap / mavenJava:** Do not create the single-jar `mavenJava` publication until `afterEvaluate`, and only when `jarMap` is empty. Eager create + later remove left orphaned `publishMavenJavaPublicationTo*` tasks with an empty `groupId` (group is typically set after `plugins {}`), which failed puzzles/simulations CI with `Invalid publication 'mavenJava': groupId cannot be empty`. Remaining jarMap publications still get a non-empty `groupId` from the final project group.
 - **`bb4Libs` plugin aliases:** `bb4.settings` loads the packaged catalog via `from(toml)` so id-only plugin aliases stay versionless. The previous `applyTo` path re-attached the `bb4-gradle` version, which conflicted with plugins already on the classpath from `bb4.settings` and broke CI (`already on the classpath with an unknown version`).
 
 ### Changed

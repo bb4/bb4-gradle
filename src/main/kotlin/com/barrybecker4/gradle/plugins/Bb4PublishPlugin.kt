@@ -75,25 +75,9 @@ class Bb4PublishPlugin : Plugin<Project> {
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         val bb4Extension = project.extensions.findByType(Bb4Extension::class.java)
 
-        // Eager single-jar publication; disabled when jarMap entries appear.
-        val mavenJava = publishing.publications.create("mavenJava", MavenPublication::class.java) { pub ->
-            pub.artifactId = project.name
-            pub.groupId = Bb4PomSupport.groupId(project)
-            pub.from(project.components.getByName("java"))
-            pub.artifact(sourcesJar)
-            pub.artifact(javadocJar)
-            val scalaJar = scaladocJar
-            if (scalaJar != null) {
-                pub.artifact(scalaJar)
-            } else {
-                project.pluginManager.withPlugin("scala") {
-                    scaladocJar?.let { pub.artifact(it) }
-                }
-            }
-            Bb4PomSupport.configurePom(pub, project)
-            Bb4CycloneDxSupport.attachBomToPublication(project, pub)
-        }
-
+        // Defer mavenJava until afterEvaluate. Creating it eagerly registers publishMavenJava*
+        // tasks; removing the publication later leaves those tasks orphaned with an empty
+        // groupId (group is usually set after plugins {}), and `publish` still runs them.
         var multiJarMode = false
 
         fun enterMultiJarMode() {
@@ -105,7 +89,36 @@ class Bb4PublishPlugin : Plugin<Project> {
             sourcesJar.configure { it.isEnabled = false }
             javadocJar.configure { it.isEnabled = false }
             scaladocJar?.configure { it.isEnabled = false }
-            publishing.publications.remove(mavenJava)
+            // Belt-and-suspenders: drop any mavenJava that another path may have created,
+            // and disable leftover MavenJava publication tasks so `publish` cannot run them.
+            publishing.publications.findByName("mavenJava")?.let { publishing.publications.remove(it) }
+            project.tasks.matching { it.name.contains("MavenJavaPublication") }.configureEach { task ->
+                task.enabled = false
+            }
+        }
+
+        fun createMavenJavaPublication() {
+            if (publishing.publications.findByName("mavenJava") != null) {
+                return
+            }
+            publishing.publications.create("mavenJava", MavenPublication::class.java) { pub ->
+                pub.artifactId = project.name
+                pub.groupId = Bb4PomSupport.groupId(project)
+                pub.version = project.version.toString()
+                pub.from(project.components.getByName("java"))
+                pub.artifact(sourcesJar)
+                pub.artifact(javadocJar)
+                val scalaJar = scaladocJar
+                if (scalaJar != null) {
+                    pub.artifact(scalaJar)
+                } else {
+                    project.pluginManager.withPlugin("scala") {
+                        scaladocJar?.let { pub.artifact(it) }
+                    }
+                }
+                Bb4PomSupport.configurePom(pub, project)
+                Bb4CycloneDxSupport.attachBomToPublication(project, pub)
+            }
         }
 
         fun registerJarMapEntry(key: String, includes: List<String>, excludes: List<String>) {
@@ -189,7 +202,7 @@ class Bb4PublishPlugin : Plugin<Project> {
             }
         }
 
-        // Legacy ext.jarMap + final group/version for publications (often set after plugins {}).
+        // Legacy ext.jarMap + single-jar mavenJava + final group/version (often set after plugins {}).
         // Extension jarMap entries themselves are wired above via container callbacks.
         project.afterEvaluate {
             // Always resolve so dual bb4.jarMap + ext.jarMap conflicts are detected.
@@ -203,8 +216,16 @@ class Bb4PublishPlugin : Plugin<Project> {
                     registerJarMapEntry(key, includes, excludes)
                 }
             }
+            if (!multiJarMode) {
+                createMavenJavaPublication()
+            }
             publishing.publications.withType(MavenPublication::class.java).configureEach { pub ->
-                pub.groupId = Bb4PomSupport.groupId(project)
+                val gid = Bb4PomSupport.groupId(project)
+                require(gid.isNotBlank()) {
+                    "bb4.publish: project.group must be set to a non-empty Maven groupId " +
+                        "(publication '${pub.name}'). Set `group = '…'` after plugins {}."
+                }
+                pub.groupId = gid
                 pub.version = project.version.toString()
             }
             Bb4SigningSupport.configure(project, publishing)
