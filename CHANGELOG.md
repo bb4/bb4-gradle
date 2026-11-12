@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- **Source/resource overlap ([#41](https://github.com/bb4/bb4-gradle/issues/41)):** `bb4.scala-library` excludes `**/*.java` and `**/*.scala` from main/test resources while still packaging co-located assets like `package.png`. Main `jar` and jarMap output jars no longer set `DuplicatesStrategy.EXCLUDE` for that bug. `sourcesJar` still uses `EXCLUDE` because `allSource` unions overlapping source/resource roots and would otherwise duplicate co-located assets.
 - **`bb4.publish` jarMap / mavenJava:** Do not create the single-jar `mavenJava` publication until `afterEvaluate`, and only when `jarMap` is empty. Eager create + later remove left orphaned `publishMavenJavaPublicationTo*` tasks with an empty `groupId` (group is typically set after `plugins {}`), which failed puzzles/simulations CI with `Invalid publication 'mavenJava': groupId cannot be empty`. Remaining jarMap publications still get a non-empty `groupId` from the final project group.
 - **`bb4Libs` plugin aliases:** `bb4.settings` loads the packaged catalog via `from(toml)` so id-only plugin aliases stay versionless. The previous `applyTo` path re-attached the `bb4-gradle` version, which conflicted with plugins already on the classpath from `bb4.settings` and broke CI (`already on the classpath with an unknown version`).
 

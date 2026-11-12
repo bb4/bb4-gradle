@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.jar.JarFile
 
 import static org.junit.jupiter.api.Assertions.*
 
@@ -566,6 +567,70 @@ class Bb4PluginsFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(':jar').outcome)
         assertTrue(Files.exists(testProjectDir.resolve('build/libs/custom-name-1.0.jar')))
+    }
+
+    @Test
+    void 'scala-library jar keeps package png and excludes scala sources from resources'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-resource-excludes'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.publish'
+            }
+
+            group = 'com.test'
+            version = '1.0'
+        """
+
+        def pkgDir = testProjectDir.resolve('scala-source/com/example')
+        Files.createDirectories(pkgDir)
+        pkgDir.resolve('Hello.scala').toFile().text = '''
+            package com.example
+
+            class Hello {
+              def message: String = "hi"
+            }
+        '''
+        pkgDir.resolve('package.png').toFile().bytes = [
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        ] as byte[]
+
+        def result = runGradle('jar', 'sourcesJar')
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':jar').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':sourcesJar').outcome)
+
+        def jarPath = testProjectDir.resolve('build/libs/test-resource-excludes-1.0.jar')
+        assertTrue(Files.exists(jarPath), "Expected jar at ${jarPath}")
+        def jarEntries = jarEntryNames(jarPath)
+        assertTrue(jarEntries.contains('com/example/package.png'), "jar should contain package.png: ${jarEntries}")
+        assertTrue(
+            jarEntries.any { it == 'com/example/Hello.class' || it.startsWith('com/example/Hello') && it.endsWith('.class') },
+            "jar should contain Hello class: ${jarEntries}"
+        )
+        assertFalse(jarEntries.contains('com/example/Hello.scala'), "jar must not contain Hello.scala: ${jarEntries}")
+
+        def sourcesJarPath = testProjectDir.resolve('build/libs/test-resource-excludes-1.0-sources.jar')
+        assertTrue(Files.exists(sourcesJarPath), "Expected sources jar at ${sourcesJarPath}")
+        def sourcesEntries = jarEntryNames(sourcesJarPath)
+        assertTrue(sourcesEntries.contains('com/example/Hello.scala'), "sourcesJar should contain Hello.scala: ${sourcesEntries}")
+        assertTrue(sourcesEntries.contains('com/example/package.png'), "sourcesJar should contain package.png: ${sourcesEntries}")
+    }
+
+    private static Set<String> jarEntryNames(Path jarPath) {
+        def names = new HashSet<String>()
+        new JarFile(jarPath.toFile()).withCloseable { jar ->
+            jar.entries().each { entry -> names.add(entry.name) }
+        }
+        return names
     }
 
     private def runGradle(String... args) {

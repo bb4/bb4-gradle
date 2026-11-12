@@ -3,7 +3,6 @@ package com.barrybecker4.gradle.plugins
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.scala.ScalaPlugin
@@ -31,12 +30,14 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             main.extensions.getByType(org.gradle.api.tasks.ScalaSourceDirectorySet::class.java)
                 .setSrcDirs(listOf("scala-source"))
             main.resources.setSrcDirs(listOf("source", "scala-source"))
+            main.resources.exclude("**/*.java", "**/*.scala")
         }
         sourceSets.named("test").configure { test: SourceSet ->
             test.java.setSrcDirs(listOf("test"))
             test.extensions.getByType(org.gradle.api.tasks.ScalaSourceDirectorySet::class.java)
                 .setSrcDirs(listOf("scala-test"))
             test.resources.setSrcDirs(listOf("test", "scala-test"))
+            test.resources.exclude("**/*.java", "**/*.scala")
         }
 
         project.dependencies.add(
@@ -57,7 +58,6 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
         project.extensions.getByType(BasePluginExtension::class.java).archivesName.set(baseName)
 
         project.tasks.named("jar", Jar::class.java).configure { jar ->
-            jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             jar.archiveFileName.set(
                 baseName.flatMap { name ->
                     project.provider { "$name-${project.version}.jar" }

@@ -46,6 +46,9 @@ class Bb4PublishPlugin : Plugin<Project> {
 
         val sourcesJar = project.tasks.register("sourcesJar", Jar::class.java) { jar ->
             jar.description = "Source jar for Sonatype"
+            // allSource unions language sources with resources; when resource roots
+            // overlap source roots (bb4 flat layout), co-located assets like
+            // package.png appear twice. EXCLUDE is only for that overlap.
             jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             jar.archiveClassifier.set("sources")
             jar.from(main.map { it.allSource })
@@ -127,7 +130,6 @@ class Bb4PublishPlugin : Plugin<Project> {
 
             project.tasks.register("${key}Jar", Jar::class.java) { jar ->
                 jar.archiveBaseName.set("bb4-$key")
-                jar.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                 jar.from(main.map { it.output })
                 includes.forEach { jar.include(it) }
                 excludes.forEach { jar.exclude(it) }

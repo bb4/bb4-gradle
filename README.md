@@ -164,6 +164,8 @@ Source layout expected by `scala-library`:
 
 - Java: `source/`, tests: `test/`
 - Scala: `scala-source/`, tests: `scala-test/`
+- Non-source files in those trees (for example `package.png` beside a package) are packaged as resources; 
+ `.java` and `.scala` are excluded from the resource pipeline so they are not duplicated into jars.
 
 ## Test this project (`bb4-gradle`)
 
