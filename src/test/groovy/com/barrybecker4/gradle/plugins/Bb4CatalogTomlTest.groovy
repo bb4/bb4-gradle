@@ -83,17 +83,20 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
                 plugins << entry
                 return new Object() {
                     def versionRef(String ref) { entry.versionRef = ref }
+                    def version(String ver) { entry.version = ver }
                 }
             }
         }
         Bb4CatalogToml.applyTo(builder, SAMPLE + '''
 [plugins]
-base = { id = "com.barrybecker4.bb4.base", version.ref = "bb4-gradle" }
+base = { id = "com.barrybecker4.bb4.base" }
+publish = { id = "com.barrybecker4.bb4.publish", version.ref = "bb4-gradle" }
 ''')
         assertEquals('3.10.0', versions.scala)
         assertEquals('com.barrybecker4', libraries.find { it.alias == 'math' }.group)
         assertEquals('math', libraries.find { it.alias == 'math' }.versionRef)
         assertEquals('com.barrybecker4.bb4.base', plugins.find { it.alias == 'base' }.id)
-        assertEquals('bb4-gradle', plugins.find { it.alias == 'base' }.versionRef)
+        assertEquals('0.0.0', plugins.find { it.alias == 'base' }.version)
+        assertEquals('bb4-gradle', plugins.find { it.alias == 'publish' }.versionRef)
     }
 }

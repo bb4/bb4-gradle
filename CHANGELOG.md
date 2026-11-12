@@ -7,7 +7,7 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - **Platform ([#37](https://github.com/bb4/bb4-gradle/issues/37)):** `com.barrybecker4:bb4-platform` (BOM) and `com.barrybecker4:bb4-catalog` (version catalog) from the `:platform` subproject. Per-library version lines live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml); the plugin version key `bb4-gradle` is rewritten from this project's version at publish.
-- **`com.barrybecker4.bb4.settings`:** Settings plugin that enforces Gradle **9.1+**, applies Foojay 1.0.0, adds the Central snapshots repository, installs the `bb4` catalog, and `includeBuild`s sibling `bb4-*` checkouts (disable with `-Pbb4.includeSiblings=false`).
+- **`com.barrybecker4.bb4.settings`:** Settings plugin that enforces Gradle **9.1+**, applies Foojay 1.0.0, adds the Central snapshots repository, installs the `bb4Libs` catalog, and `includeBuild`s sibling `bb4-*` checkouts (disable with `-Pbb4.includeSiblings=false`).
 - **Single 3.0 floor:** Gradle **9.1+**, Java **25**, wrapper **9.8.2**.
 - **`bb4.application`:** Opt-in native installers via `bb4.jpackage { enabled = true … }`. Registers `jpackage<AppId>` and `jpackageAllApps` from `ext.appMap` (skipping `deploy: false`), syncs `jarMap` jars into `installDist` `lib/`, and renames artifacts to `bb4-<appId>-<version>.{dmg,msi,deb}`. Configure `packageIdentifierPrefix`, `mainJarKey`, `defaultMainClass`, `javaOptions`, `arguments`, optional `consoleDesktopTemplate`, and optional `jpackageExecutable` (for tests). App-specific launch args stay in the consuming project.
 

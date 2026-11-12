@@ -92,25 +92,29 @@ bb4 {
 ```groovy
 pluginManagement {
     def sibling = new File(settings.settingsDir, '../bb4-gradle')
-    if (sibling.directory && gradle.parent == null) includeBuild(sibling)
+    if (sibling.directory && gradle.parent == null) includeBuild(sibling.canonicalFile)
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
         maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
+    plugins {
+        id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+    }
 }
 plugins {
-    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+    id 'com.barrybecker4.bb4.settings'
 }
 ```
 
 ```groovy
 plugins {
-    alias(bb4.plugins.scala.library)
-    alias(bb4.plugins.publish)
+    alias(bb4Libs.plugins.scala.library)
+    alias(bb4Libs.plugins.publish)
 }
 dependencies {
-    implementation bb4.common
+    implementation bb4Libs.common
 }
 ```
 
