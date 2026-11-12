@@ -61,7 +61,11 @@ bb4 {
 
 // Remove duplicate declarations now provided by plugins:
 // - scala-library, java-library, repositories (unless you need extras)
-// - scala3-library / scalatest / junit / vecmath (unless you need different versions)
+// - scala3-library / scalatest / junit (unless you need different versions)
+// Declare domain deps yourself when needed:
+//   api bb4Libs.vecmath
+//   bb4 { htmlReports { enabled = true } }   // ScalaTest HTML reporter (scala-xml + flexmark)
+//   implementation platform(bb4Libs.bb4.platform)  // e.g. align transitive gson
 ```
 
 ## Canary rollout (one repository at a time)

@@ -188,6 +188,97 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
+    void 'scala-library omits domain deps IDE plugins and html reporter stack by default'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-scala-slim-deps'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            task assertSlimConventions {
+                doLast {
+                    assert !plugins.hasPlugin('idea')
+                    assert !plugins.hasPlugin('eclipse')
+                    assert !plugins.hasPlugin('project-report')
+
+                    def implCoords = configurations.implementation.allDependencies
+                        .findAll { it.group && it.name }
+                        .collect { "\${it.group}:\${it.name}" }
+                    assert !implCoords.any { it.startsWith('java3d:vecmath') }
+
+                    def testImplCoords = configurations.testImplementation.allDependencies
+                        .findAll { it.group && it.name }
+                        .collect { "\${it.group}:\${it.name}" }
+                    assert testImplCoords.any { it.contains('junit-jupiter') }
+                    assert testImplCoords.any { it.contains('scalatest') }
+
+                    def testRtCoords = configurations.testRuntimeOnly.allDependencies
+                        .findAll { it.group && it.name }
+                        .collect { "\${it.group}:\${it.name}" }
+                    assert !testRtCoords.any { it.contains('scala-xml') }
+                    assert !testRtCoords.any { it.contains('flexmark') }
+                    assert !testRtCoords.any { it.contains('pegdown') }
+                }
+            }
+        """
+
+        def result = runGradle('assertSlimConventions')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':assertSlimConventions').outcome)
+    }
+
+    @Test
+    void 'scala-library htmlReports opt-in adds flexmark and scala-xml without pegdown'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-scala-html-reports'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            bb4 {
+                htmlReports {
+                    enabled = true
+                }
+            }
+
+            task assertHtmlReports {
+                doLast {
+                    def testRtCoords = configurations.testRuntimeOnly.allDependencies
+                        .findAll { it.group && it.name }
+                        .collect { "\${it.group}:\${it.name}" }
+                    assert testRtCoords.any { it.contains('scala-xml') }
+                    assert testRtCoords.any { it.contains('flexmark') }
+                    assert !testRtCoords.any { it.contains('pegdown') }
+                }
+            }
+        """
+
+        def result = runGradle('assertHtmlReports')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':assertHtmlReports').outcome)
+    }
+
+    @Test
     void 'plugins can be applied in different orders'() {
         settingsFile.toFile().text = """
             pluginManagement {

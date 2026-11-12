@@ -38,7 +38,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 |-----------|---------|
 | `com.barrybecker4.bb4.settings` | Settings plugin: Gradle 9.1 floor, Foojay, Central snapshots repo, `bb4Libs` version catalog, sibling `includeBuild` substitution |
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
-| `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
+| `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, core test deps (JUnit 5, ScalaTest), jar/manifest conventions; optional `bb4.htmlReports` |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, `bb4.apps` → `run*` / `create*App`, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
@@ -94,6 +94,10 @@ version = '3.0-SNAPSHOT'
 dependencies {
     implementation bb4Libs.common
     implementation bb4Libs.math
+    // Domain / alignment (not applied by scala-library):
+    // api bb4Libs.vecmath
+    // implementation bb4Libs.gson
+    // implementation platform(bb4Libs.bb4.platform)
     // Or without the catalog:
     // implementation platform('com.barrybecker4:bb4-platform:3.0-SNAPSHOT')
     // implementation 'com.barrybecker4:bb4-common'
@@ -104,6 +108,11 @@ bb4 {
     mainClass.set('com.example.Main')    // optional jar manifest / application main
     // repository.set('bb4-my-lib')      // optional GitHub repo name for POM url/scm
     // scalaVersion.set('3.10.0')        // optional override (scala-library)
+
+    // Optional: ScalaTest HTML reporter runtime deps (scala-xml + flexmark-all)
+    // htmlReports {
+    //     enabled = true
+    // }
     
     // Optional: multi-artifact publishing (when using bb4.publish)
     // jarMap.put('common', [include: ['com/example/common/**']])
