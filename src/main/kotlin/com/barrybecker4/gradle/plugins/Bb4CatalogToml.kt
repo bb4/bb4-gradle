@@ -73,7 +73,11 @@ object Bb4CatalogToml {
             builder.library(alias, group, name).versionRef(versionRef)
         }
 
-        val pluginVersion = version(text, "bb4-gradle")
+        // Prefer VersionCatalogBuilder.from(tomlFile) for real catalogs: the
+        // programmatic PluginAliasBuilder API cannot express versionless plugins
+        // (no withoutVersion), and attaching bb4-gradle versions breaks consumers
+        // that already have the plugin jar on the settings classpath.
+        // applyTo still supports version.ref plugin rows for tests / tooling.
         val pluginWithVersion = Pattern.compile(
             "(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*\"([^\"]+)\"\\s*,\\s*version\\.ref\\s*=\\s*\"([^\"]+)\"\\s*}",
         )
@@ -93,7 +97,8 @@ object Bb4CatalogToml {
             if (alias in seen) {
                 continue
             }
-            builder.plugin(alias, idOnlyMatcher.group(2)).version(pluginVersion)
+            // Skip programmatic registration — PluginAliasBuilder requires a version.
+            // Callers that need id-only aliases must use from(toml) instead.
         }
     }
 
@@ -123,29 +128,13 @@ object Bb4CatalogToml {
             invoke(libraryBuilder!!, "versionRef", libraryMatcher.group(4))
         }
 
-        val pluginVersion = version(text, "bb4-gradle")
         val pluginWithVersion = Pattern.compile(
             "(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*\"([^\"]+)\"\\s*,\\s*version\\.ref\\s*=\\s*\"([^\"]+)\"\\s*}",
         )
-        val pluginIdOnly = Pattern.compile(
-            "(?m)^([a-zA-Z0-9_-]+)\\s*=\\s*\\{\\s*id\\s*=\\s*\"([^\"]+)\"\\s*}",
-        )
         val withVersionMatcher = pluginWithVersion.matcher(pluginsSection)
-        val seen = HashSet<String>()
         while (withVersionMatcher.find()) {
-            val alias = withVersionMatcher.group(1)
-            seen.add(alias)
-            val pluginBuilder = invoke(builder, "plugin", alias, withVersionMatcher.group(2))
+            val pluginBuilder = invoke(builder, "plugin", withVersionMatcher.group(1), withVersionMatcher.group(2))
             invoke(pluginBuilder!!, "versionRef", withVersionMatcher.group(3))
-        }
-        val idOnlyMatcher = pluginIdOnly.matcher(pluginsSection)
-        while (idOnlyMatcher.find()) {
-            val alias = idOnlyMatcher.group(1)
-            if (alias in seen) {
-                continue
-            }
-            val pluginBuilder = invoke(builder, "plugin", alias, idOnlyMatcher.group(2))
-            invoke(pluginBuilder!!, "version", pluginVersion)
         }
     }
 

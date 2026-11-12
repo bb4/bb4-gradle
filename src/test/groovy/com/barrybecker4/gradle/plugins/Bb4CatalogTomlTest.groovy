@@ -95,8 +95,8 @@ publish = { id = "com.barrybecker4.bb4.publish", version.ref = "bb4-gradle" }
         assertEquals('3.10.0', versions.scala)
         assertEquals('com.barrybecker4', libraries.find { it.alias == 'math' }.group)
         assertEquals('math', libraries.find { it.alias == 'math' }.versionRef)
-        assertEquals('com.barrybecker4.bb4.base', plugins.find { it.alias == 'base' }.id)
-        assertEquals('0.0.0', plugins.find { it.alias == 'base' }.version)
+        // Id-only plugin rows are skipped by applyTo (use from(toml) for those).
+        assertEquals(null, plugins.find { it.alias == 'base' })
         assertEquals('bb4-gradle', plugins.find { it.alias == 'publish' }.versionRef)
     }
 }

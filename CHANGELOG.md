@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`bb4Libs` plugin aliases:** `bb4.settings` loads the packaged catalog via `from(toml)` so id-only plugin aliases stay versionless. The previous `applyTo` path re-attached the `bb4-gradle` version, which conflicted with plugins already on the classpath from `bb4.settings` and broke CI (`already on the classpath with an unknown version`).
+
 ### Changed
 
 - **Fold app build logic into plugins ([#38](https://github.com/bb4/bb4-gradle/issues/38)):** `bb4.apps` is the typed multi-app model (`apps.put` / `register`). `bb4.application` generates `run*`, `create*App` (`CreateStartScripts`), wires them into `installDist`, and depends on `jarMap` jars when present. Prefer `apps` over `bb4.appMap` / `ext.appMap` (still fallbacks). `deploySchemas` copies only from `bb4.schemaDirectory` (default `source/schema`). `clean` deletes `dist/` via `DirectoryProperty`. **Removed** `copyToLib` — use `installDist`. Org reusable workflow: `bb4/.github/.github/workflows/jpackage-release.yml`.

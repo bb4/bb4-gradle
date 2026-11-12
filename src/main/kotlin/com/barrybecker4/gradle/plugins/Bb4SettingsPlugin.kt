@@ -5,14 +5,18 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.DependencySubstitutions
 import org.gradle.api.initialization.Settings
+import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.util.GradleVersion
 import java.net.URI
+import javax.inject.Inject
 
 /**
  * Settings conventions for bb4 projects: Gradle floor, Foojay, Central snapshots,
  * the `bb4Libs` version catalog, and sibling `includeBuild` substitution.
  */
-class Bb4SettingsPlugin : Plugin<Settings> {
+abstract class Bb4SettingsPlugin @Inject constructor(
+    private val fileCollectionFactory: FileCollectionFactory,
+) : Plugin<Settings> {
 
     override fun apply(settings: Settings) {
         val toml = Bb4CatalogToml.loadPackaged()
@@ -51,9 +55,15 @@ class Bb4SettingsPlugin : Plugin<Settings> {
         }
 
         // Catalog name must not be 'bb4' — that conflicts with the project `bb4 {}` extension.
-        // Populate via applyTo (avoids internal FileOperations) so versionless plugin aliases work.
+        // Load via from(files(toml)) so id-only plugin aliases stay versionless. The
+        // programmatic PluginAliasBuilder API cannot express versionless plugins; attaching
+        // versions breaks alias(bb4Libs.plugins.*) when bb4.settings already put the jar on
+        // the settings classpath ("already on the classpath with an unknown version").
+        val catalogFile = settings.layout.rootDirectory.file(".gradle/bb4-libs.versions.toml").asFile
+        catalogFile.parentFile.mkdirs()
+        catalogFile.writeText(toml)
         settings.dependencyResolutionManagement.versionCatalogs.create("bb4Libs") { builder ->
-            Bb4CatalogToml.applyTo(builder, toml)
+            builder.from(fileCollectionFactory.fixed(catalogFile))
         }
 
         val includeSiblings = settings.providers.gradleProperty("bb4.includeSiblings")
