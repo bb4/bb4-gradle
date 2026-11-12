@@ -121,6 +121,38 @@ dependencies {
 
 Adopting the settings plugin replaces per-repo Foojay lines and hand-written library `includeBuild` blocks. **`bb4-puzzles` and `bb4-simulations` must delete those `includeBuild` blocks** when they switch, or Gradle rejects a duplicate included build. Pass `-Pbb4.includeSiblings=false` to keep snapshot resolution without sibling substitution.
 
+## `bb4.apps` (multi-app run / start scripts / deploy)
+
+With `bb4.application`, declare apps in `bb4 {}` instead of hand-rolling `ext.appMap` loops:
+
+```groovy
+bb4 {
+    mainClass.set('com.example.DefaultMain')
+    apps.put('sudoku', [
+        title: 'Sudoku',
+        mainClass: 'com.example.Sudoku',
+        command: 'bb4-sudoku',
+        description: '…',
+        longDescription: '…',
+        mx: '8G',                    // accepted as maxHeap
+        // startOnFirstThreadMac: true,
+        // panel_class: 'com.example.Panel',  // default args: -panel_class …
+    ])
+}
+```
+
+The plugin registers `runSudoku`, `createSudokuApp`, fills deployHtml from the same model, and (when `jpackage.enabled`) builds installers. Delete local `appMap.each { JavaExec / CreateStartScripts }` and jarMap `dependsOn` blocks. Schemas live under `source/schema` (or `bb4.schemaDirectory`); do not disable `deploySchemas` just to avoid a whole-project scan.
+
+Release installers: call the org reusable workflow instead of copying matrix YAML:
+
+```yaml
+jobs:
+  installers:
+    uses: bb4/.github/.github/workflows/jpackage-release.yml@main
+    permissions:
+      contents: write
+```
+
 ## `jarMap` (multi-jar publications)
 
 When `bb4.publish` is applied and you need to publish multiple artifacts from one project, configure `jarMap` in the `bb4 {}` extension block **after** `plugins {}`:

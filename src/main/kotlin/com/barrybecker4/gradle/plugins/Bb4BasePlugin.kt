@@ -17,6 +17,7 @@ class Bb4BasePlugin : Plugin<Project> {
         }
         val bb4 = project.extensions.findByType(Bb4Extension::class.java)
             ?: project.extensions.create("bb4", Bb4Extension::class.java)
+        bb4.schemaDirectory.convention(project.layout.projectDirectory.dir("source/schema"))
         val baseName = bb4.archivesBaseName.map { name -> name.ifEmpty { project.name } }
         project.extensions.getByType(BasePluginExtension::class.java).archivesName.set(baseName)
         Bb4Conventions.configureRepositories(project.repositories)

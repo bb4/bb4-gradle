@@ -40,7 +40,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 | `com.barrybecker4.bb4.base` | Java 25 toolchain, shared repositories, resolution defaults, Central Portal credential property placeholders |
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, test deps (JUnit 5, ScalaTest), jar/manifest conventions |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars; optional `jarMap` multi-artifact mode |
-| `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
+| `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, `bb4.apps` → `run*` / `create*App`, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
 
 Also published from this repo:
 
@@ -109,11 +109,15 @@ bb4 {
     // jarMap.put('common', [include: ['com/example/common/**']])
     // jarMap.put('ui', [include: ['com/example/ui/**'], exclude: ['**/*Test.class']])
 
-    // Optional: app metadata for deployHtml / jpackage (legacy ext.appMap still works)
-    // appMap.put('demo', [title: 'Demo', mainClass: 'com.example.Main', command: 'demo',
-    //                     description: 'd', longDescription: 'd'])
+    // Optional: multi-app model (run*, create*App start scripts, deployHtml, jpackage).
+    // Prefer apps over appMap / ext.appMap. Map key mx is accepted as maxHeap.
+    // apps.put('demo', [title: 'Demo', mainClass: 'com.example.Main', command: 'bb4-demo',
+    //                   description: 'd', longDescription: 'd', mx: '512m'])
 
-    // Optional: native installers (requires appMap + jarMap + packaging/icons/<appId>/)
+    // Optional: schema root for deploySchemas (default source/schema)
+    // schemaDirectory.set(layout.projectDirectory.dir('source/schema'))
+
+    // Optional: native installers (requires apps/appMap + jarMap + packaging/icons/<appId>/)
     // jpackage {
     //     enabled = true
     //     packageIdentifierPrefix = 'com.example'
@@ -133,8 +137,8 @@ Apply only what you need:
 - **Settings** → `com.barrybecker4.bb4.settings` (once per repo). Delete hand-written Foojay and library `includeBuild` blocks when adopting it.
 - **Library** → `alias(bb4Libs.plugins.scala.library)` (applies **base** conventions internally). Use **`bb4Libs.plugins.base` alone** only if you want toolchain/repos without applying Scala.
 - **Publish to Sonatype** → add `alias(bb4Libs.plugins.publish)`.
-- **CLI / dist / deploy** → add `alias(bb4Libs.plugins.application)`.
-- **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `ext.appMap`, `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`).
+- **CLI / dist / deploy** → add `alias(bb4Libs.plugins.application)`. Configure `bb4.apps` (or legacy `appMap`) so the plugin registers `run*`, `create*App` start scripts, and deploy helpers. Schemas copy from `bb4.schemaDirectory` (default `source/schema`). Prefer `installDist` over the removed `copyToLib` task.
+- **Native installers** → with `bb4.application`, set `bb4.jpackage.enabled = true`. Requires `bb4.apps` (or legacy appMap), `jarMap` (extension or legacy `ext.jarMap`), a `LICENSE` file, and `packaging/icons/<appId>/icon.{icns,ico,png}`. Run `./gradlew jpackageAllApps` (or `jpackage<AppId>`). Release CI can call the reusable workflow [`bb4/.github/.github/workflows/jpackage-release.yml`](https://github.com/bb4/.github/blob/main/.github/workflows/jpackage-release.yml).
 
 ### Plugin composition and ordering
 

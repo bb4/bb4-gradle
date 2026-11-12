@@ -8,10 +8,13 @@ import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.plugins.JavaApplication
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.SourceSet
+import org.gradle.jvm.application.tasks.CreateStartScripts
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -22,14 +25,14 @@ class Bb4ApplicationPlugin : Plugin<Project> {
         project.pluginManager.apply(ApplicationPlugin::class.java)
 
         val distributionDir = "dist"
-        val projectDistributionDir = "$distributionDir/${project.name}"
-        val schemaDistributionDir = "$distributionDir/schema"
+        val projectDistributionDir = project.layout.projectDirectory.dir("$distributionDir/${project.name}")
+        val schemaDistributionDir = project.layout.projectDirectory.dir("$distributionDir/schema")
 
         project.extensions.extraProperties.set("distributionDir", distributionDir)
-        project.extensions.extraProperties.set("projectDistributionDir", projectDistributionDir)
-        project.extensions.extraProperties.set("schemaDistributionDir", schemaDistributionDir)
+        project.extensions.extraProperties.set("projectDistributionDir", "$distributionDir/${project.name}")
+        project.extensions.extraProperties.set("schemaDistributionDir", "$distributionDir/schema")
 
-        // Declarative deletes — do not capture Project in an execution-time closure (configuration cache).
+        // Declarative deletes via DirectoryProperty — configuration-cache safe.
         project.tasks.named(LifecycleBasePlugin.CLEAN_TASK_NAME, Delete::class.java).configure { clean ->
             clean.delete(projectDistributionDir, schemaDistributionDir)
         }
@@ -46,10 +49,18 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                 registerJpackageTasks(project, bb4)
             }
 
-            // Also cover: enabled set without block, or appMap/jarMap filled after jpackage {}.
+            // Also cover: enabled set without block, or apps/appMap/jarMap filled after jpackage {}.
             // Legacy ext.appMap is often assigned after the bb4 {} block.
             project.afterEvaluate {
+                registerAppTasks(project, bb4, appExt)
                 registerJpackageTasks(project, bb4)
+            }
+        }
+
+        // Application without base can still use legacy ext.appMap.
+        project.afterEvaluate {
+            if (project.extensions.findByType(Bb4Extension::class.java) == null) {
+                registerAppTasks(project, null, appExt)
             }
         }
 
@@ -60,11 +71,11 @@ class Bb4ApplicationPlugin : Plugin<Project> {
         project.tasks.register("deployHtml", Copy::class.java) { copy ->
             copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             copy.group = "distribution"
-            copy.description = "Copy html related files to $projectDistributionDir"
+            copy.description = "Copy html related files to dist/${project.name}"
             copy.into(projectDistributionDir)
 
             val versionProvider = project.provider { project.version.toString() }
-            val appMapProvider = project.provider { resolveAppMap(project) }
+            val appMapProvider = project.provider { Bb4AppSupport.resolveAppMap(project) }
 
             copy.inputs.property("versionString", versionProvider)
             copy.inputs.property("appMap", appMapProvider)
@@ -92,8 +103,18 @@ class Bb4ApplicationPlugin : Plugin<Project> {
 
         project.tasks.register("deploySchemas", Copy::class.java) { copy ->
             copy.group = "distribution"
-            copy.description = "Copy schema files to $schemaDistributionDir"
-            copy.from(project.fileTree(project.projectDir) { it.include("**/*.dtd", "**/*.xsd") })
+            copy.description = "Copy schema files to dist/schema"
+            val schemaSource = project.provider {
+                val bb4 = project.extensions.findByType(Bb4Extension::class.java)
+                if (bb4 != null && bb4.schemaDirectory.isPresent) {
+                    bb4.schemaDirectory.get()
+                } else {
+                    project.layout.projectDirectory.dir("source/schema")
+                }
+            }
+            copy.from(schemaSource) { spec ->
+                spec.include("**/*.dtd", "**/*.xsd")
+            }
             copy.into(schemaDistributionDir)
             copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
@@ -115,18 +136,69 @@ class Bb4ApplicationPlugin : Plugin<Project> {
     }
 
     companion object {
-        private fun resolveAppMap(project: Project): Map<String, Map<String, Any?>> {
-            val bb4 = project.extensions.findByType(Bb4Extension::class.java)
-            val fromExtension = bb4?.appMap?.orNull ?: emptyMap()
-            if (fromExtension.isNotEmpty()) {
-                return fromExtension
+        private fun registerAppTasks(project: Project, bb4: Bb4Extension?, appExt: JavaApplication) {
+            if (project.extensions.extraProperties.has("bb4.apps.tasks.registered")) {
+                return
             }
-            val raw = project.findProperty("appMap")
-            return if (raw is Map<*, *>) {
-                @Suppress("UNCHECKED_CAST")
-                raw as Map<String, Map<String, Any?>>
-            } else {
-                emptyMap()
+            val appMap = Bb4AppSupport.resolveAppMap(project)
+            if (appMap.isEmpty()) {
+                return
+            }
+            project.extensions.extraProperties.set("bb4.apps.tasks.registered", true)
+
+            val osName = System.getProperty("os.name")
+            val mainSourceSet = project.extensions.getByType(JavaPluginExtension::class.java)
+                .sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+            val jarMap = Bb4JarMap.resolve(project, bb4)
+            val jarMapJarTaskNames = jarMap.keys.map { key -> "${key}Jar" }
+
+            if (jarMapJarTaskNames.isNotEmpty()) {
+                project.tasks.named("installDist").configure { it.dependsOn(jarMapJarTaskNames) }
+                project.tasks.named("startScripts").configure { it.dependsOn(jarMapJarTaskNames) }
+            }
+
+            appMap.forEach { (appId, propMap) ->
+                val capitalized = Bb4AppSupport.capitalizeAppId(appId)
+                val mainClassName = propMap["mainClass"]?.toString()?.takeIf { it.isNotBlank() }
+                    ?: bb4?.mainClass?.orNull?.takeIf { it.isNotBlank() }
+                    ?: appExt.mainClass.orNull
+                    ?: ""
+                val description = propMap["description"]?.toString() ?: "Run $appId"
+                val jvmArgs = Bb4AppSupport.defaultJvmArgsFromProps(propMap, osName)
+                val programArgs = Bb4AppSupport.programArgsFromProps(propMap)
+                val applicationName = Bb4AppSupport.applicationNameFor(appId, propMap)
+
+                project.tasks.register("run$capitalized", JavaExec::class.java) { run ->
+                    run.group = "application"
+                    run.description = description
+                    run.mainClass.set(mainClassName)
+                    run.classpath = mainSourceSet.runtimeClasspath
+                    run.jvmArgs = jvmArgs
+                    run.args = programArgs
+                    run.standardInput = System.`in`
+                }
+
+                val createTask = project.tasks.register("create${capitalized}App", CreateStartScripts::class.java) { scripts ->
+                    scripts.description = description
+                    scripts.mainClass.set(mainClassName)
+                    scripts.classpath = project.tasks.named("startScripts", CreateStartScripts::class.java)
+                        .get().classpath
+                    scripts.outputDir = project.tasks.named("startScripts", CreateStartScripts::class.java)
+                        .get().outputDir
+                    scripts.applicationName = applicationName
+                    scripts.defaultJvmOpts = jvmArgs
+                    if (jarMapJarTaskNames.isNotEmpty()) {
+                        scripts.dependsOn(jarMapJarTaskNames)
+                    }
+                }
+
+                appExt.applicationDistribution.into("bin") { copy ->
+                    copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                    copy.from(createTask)
+                    copy.filePermissions { perms ->
+                        perms.unix("755")
+                    }
+                }
             }
         }
 
@@ -147,7 +219,7 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                 )
             }
 
-            val appMap = resolveAppMap(project)
+            val appMap = Bb4AppSupport.resolveAppMap(project)
             if (appMap.isEmpty()) {
                 // May still be pending (legacy ext.appMap after bb4 {}); afterEvaluate will retry.
                 return
@@ -199,7 +271,7 @@ class Bb4ApplicationPlugin : Plugin<Project> {
 
             val jpackageTasks = jpackageAppIds.map { appId ->
                 val propMap = appMap.getValue(appId)
-                val taskName = "jpackage${appId.replaceFirstChar { it.uppercase() }}"
+                val taskName = "jpackage${Bb4AppSupport.capitalizeAppId(appId)}"
                 project.tasks.register(taskName, Exec::class.java) { exec ->
                     exec.group = "distribution"
                     exec.description = "Build a native $jpackageType installer for ${propMap["title"]}"
@@ -258,7 +330,7 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                             ) as String
                         if (mainClassName.isEmpty()) {
                             throw GradleException(
-                                "jpackage $appId: no mainClass on appMap entry and defaultMainClass is unset",
+                                "jpackage $appId: no mainClass on app entry and defaultMainClass is unset",
                             )
                         }
 

@@ -4,6 +4,7 @@ package com.barrybecker4.gradle.plugins
 import org.gradle.api.Action
 import org.gradle.api.Named
 import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
@@ -105,13 +106,25 @@ open class Bb4Extension @Inject constructor(objects: ObjectFactory) {
     }
 
     /**
-     * Application metadata previously set via `ext.appMap`. Prefer this typed map;
-     * legacy `ext.appMap` remains as a fallback.
+     * Typed multi-app model. Prefer this over [appMap] / legacy `ext.appMap`.
+     * Drives `run*`, `create*App` start scripts, deployHtml, and jpackage.
+     */
+    val apps: Bb4AppsContainer = Bb4AppsContainer.create(objects)
+
+    /**
+     * Application metadata previously set via `ext.appMap`. Prefer [apps];
+     * this map and legacy `ext.appMap` remain as fallbacks when `apps` is empty.
      */
     @Suppress("UNCHECKED_CAST")
     val appMap: MapProperty<String, Map<String, Any?>> =
         objects.mapProperty(String::class.java, Map::class.java as Class<Map<String, Any?>>)
             .convention(emptyMap())
+
+    /**
+     * Root directory for `deploySchemas` (`.dtd` / `.xsd` only under this tree).
+     * Convention set by plugins to `source/schema` via project layout.
+     */
+    val schemaDirectory: DirectoryProperty = objects.directoryProperty()
 
     val jpackage: Bb4JpackageExtension =
         objects.newInstance(Bb4JpackageExtension::class.java)

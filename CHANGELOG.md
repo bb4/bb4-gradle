@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- **Fold app build logic into plugins ([#38](https://github.com/bb4/bb4-gradle/issues/38)):** `bb4.apps` is the typed multi-app model (`apps.put` / `register`). `bb4.application` generates `run*`, `create*App` (`CreateStartScripts`), wires them into `installDist`, and depends on `jarMap` jars when present. Prefer `apps` over `bb4.appMap` / `ext.appMap` (still fallbacks). `deploySchemas` copies only from `bb4.schemaDirectory` (default `source/schema`). `clean` deletes `dist/` via `DirectoryProperty`. **Removed** `copyToLib` — use `installDist`. Org reusable workflow: `bb4/.github/.github/workflows/jpackage-release.yml`.
 - **Kotlin rewrite ([#44](https://github.com/bb4/bb4-gradle/issues/44)):** Convention plugin implementation is Kotlin (Groovy remains for Spock/TestKit tests only). `bb4 {}` is created by `bb4.base` so Java-only `base` + `publish` projects get a typed place for `archivesBaseName`, `mainClass`, and `repository`. `jarMap` is a typed container that still accepts Groovy `jarMap.put('key', [include: …])`. Prefer `bb4.repository` and `bb4.appMap` on the extension; legacy `bb4.repository` / `ext.appMap` / `ext.jarMap` keep working.
 - **Published Maven POM metadata:** Updated project URL and SCM URLs to point to the new `bb4` GitHub organization (`https://github.com/bb4/`) instead of the legacy `barrybecker4` user account. Maven groupId, plugin IDs, package names, and developer identities remain unchanged.
 

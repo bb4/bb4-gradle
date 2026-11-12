@@ -7,7 +7,6 @@ import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.scala.ScalaPlugin
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
@@ -50,14 +49,6 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             test.useJUnitPlatform {
                 it.includeEngines("scalatest", "junit-jupiter")
             }
-        }
-
-        project.tasks.register("copyToLib", Copy::class.java) { task ->
-            task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            task.description = "Copies runtime dependencies into build/libs for deployment"
-            task.into(project.layout.buildDirectory.dir("libs"))
-            task.from(project.configurations.named("runtimeClasspath"))
-            task.dependsOn(project.tasks.named("jar"))
         }
 
         val baseName = bb4.archivesBaseName.map { name ->
