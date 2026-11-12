@@ -69,6 +69,21 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             compile.scalaCompileOptions.additionalParameters = params
         }
 
+        // ScalaCompile args are a plain list — apply -release: after the build script sets bb4.release.
+        project.afterEvaluate {
+            if (bb4.release.isPresent) {
+                val releaseFlag = "-release:${bb4.release.get()}"
+                project.tasks.withType(ScalaCompile::class.java).configureEach { compile ->
+                    val params =
+                        (compile.scalaCompileOptions.additionalParameters ?: emptyList()).toMutableList()
+                    if (params.none { it == releaseFlag || it.startsWith("-release:") }) {
+                        params.add(releaseFlag)
+                    }
+                    compile.scalaCompileOptions.additionalParameters = params
+                }
+            }
+        }
+
         project.tasks.withType(Test::class.java).configureEach { test ->
             test.useJUnitPlatform {
                 it.includeEngines("scalatest", "junit-jupiter")

@@ -67,6 +67,13 @@ gradlePlugin {
             tags = listOf("bb4", "settings", "version-catalog")
             implementationClass = "com.barrybecker4.gradle.plugins.Bb4SettingsPlugin"
         }
+        create("bb4Quality") {
+            id = "com.barrybecker4.bb4.quality"
+            displayName = "bb4 quality conventions"
+            description = "Optional Spotless + Scalafmt formatting for bb4 Scala layouts"
+            tags = listOf("bb4", "quality", "spotless", "scalafmt")
+            implementationClass = "com.barrybecker4.gradle.plugins.Bb4QualityPlugin"
+        }
     }
 }
 
@@ -102,6 +109,8 @@ dependencies {
     implementation("org.gradle.toolchains:foojay-resolver:1.0.0")
     // CycloneDX so Bb4PublishPlugin can apply org.cyclonedx.bom on consumers.
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
+    // Spotless so Bb4QualityPlugin can apply com.diffplug.spotless on consumers.
+    implementation("com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:8.11.0")
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.spockframework:spock-core:2.5-groovy-4.0")

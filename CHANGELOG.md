@@ -11,6 +11,11 @@ All notable changes to this project are documented in this file.
   `ScalaCompile` tasks (`-Werror` remains opt-in). Test tasks keep JUnit Platform engines
   `scalatest` + `junit-jupiter` (no Vintage), enable assertions, and use quiet failure-only
   logging with full stack traces (matching the former bb4-games pattern).
+- **`bb4.release` ([#43](https://github.com/bb4/bb4-gradle/issues/43)):** optional `bb4 { release = 21 }`
+  sets `JavaCompile` `--release` and Scala `-release:` while keeping the Java 25 toolchain.
+- **`bb4.quality` ([#43](https://github.com/bb4/bb4-gradle/issues/43)):** opt-in Spotless + Scalafmt
+  (`com.barrybecker4.bb4.quality`) for `scala-source` / `scala-test`. Uses the project's
+  `.scalafmt.conf` when present, otherwise a packaged minimal Scala 3 config.
 
 ### Changed
 

@@ -20,6 +20,12 @@ open class Bb4Extension @Inject constructor(objects: ObjectFactory) {
         objects.property(String::class.java).convention(Bb4DependencyVersions.SCALA)
 
     /**
+     * Optional bytecode / API level for Java and Scala (`javac --release` /
+     * scalac `-release:`). Unset keeps toolchain-only defaults (Java 25).
+     */
+    val release: Property<Int> = objects.property(Int::class.javaObjectType)
+
+    /**
      * GitHub repository name under the bb4 org (POM url/scm). Prefer this over
      * the legacy `bb4.repository` extra/gradle property.
      */

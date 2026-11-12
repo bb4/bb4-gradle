@@ -49,3 +49,4 @@ scala-library = { id = "com.barrybecker4.bb4.scala-library" }
 publish = { id = "com.barrybecker4.bb4.publish" }
 application = { id = "com.barrybecker4.bb4.application" }
 settings = { id = "com.barrybecker4.bb4.settings" }
+quality = { id = "com.barrybecker4.bb4.quality" }

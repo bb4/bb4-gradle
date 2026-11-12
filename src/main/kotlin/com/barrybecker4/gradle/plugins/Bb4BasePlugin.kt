@@ -6,6 +6,7 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 class Bb4BasePlugin : Plugin<Project> {
@@ -23,5 +24,10 @@ class Bb4BasePlugin : Plugin<Project> {
         Bb4Conventions.configureRepositories(project.repositories)
         Bb4Conventions.configureResolutionStrategy(project)
         Bb4Conventions.configureOssrhDefaults(project)
+
+        // Lazy link: unset bb4.release leaves options.release absent (toolchain-only).
+        project.tasks.withType(JavaCompile::class.java).configureEach { compile ->
+            compile.options.release.set(bb4.release)
+        }
     }
 }

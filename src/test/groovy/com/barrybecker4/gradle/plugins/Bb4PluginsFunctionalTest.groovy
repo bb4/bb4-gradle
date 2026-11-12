@@ -188,6 +188,84 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
+    void 'bb4 release sets Java and Scala bytecode target'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-bb4-release'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            bb4 {
+                release = 21
+            }
+
+            task assertRelease {
+                doLast {
+                    assert tasks.named('compileJava').get().options.release.get() == 21
+                    def params = tasks.named('compileScala').get().scalaCompileOptions.additionalParameters ?: []
+                    assert params.contains('-release:21')
+                }
+            }
+        """
+
+        def result = runGradle('assertRelease')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':assertRelease').outcome)
+    }
+
+    @Test
+    void 'bb4 quality registers spotlessCheck on check'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-bb4-quality'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.quality'
+            }
+
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+
+            task assertQuality {
+                doLast {
+                    assert plugins.hasPlugin('com.diffplug.spotless')
+                    assert tasks.findByName('spotlessCheck') != null
+                    assert tasks.named('check').get().dependsOn.any { dep ->
+                        def t = dep instanceof Task ? dep : (dep.hasProperty('get') ? dep.get() : dep)
+                        (t instanceof Task && t.name == 'spotlessCheck') ||
+                            dep.toString().contains('spotlessCheck')
+                    }
+                    // Packaged Scala 3 defaults are written when the project has no .scalafmt.conf
+                    assert file('.gradle/bb4-scalafmt.conf').isFile()
+                    assert file('.gradle/bb4-scalafmt.conf').text.contains('runner.dialect = scala3')
+                }
+            }
+        """
+
+        // Spotless+Scalafmt execution is verified outside TestKit (JarState classloader);
+        // here we only assert plugin wiring under withPluginClasspath.
+        def result = runGradle('assertQuality')
+        assertEquals(TaskOutcome.SUCCESS, result.task(':assertQuality').outcome)
+    }
+
+    @Test
     void 'scala-library sets default Scala flags and quiet failure test logging'() {
         settingsFile.toFile().text = """
             pluginManagement {

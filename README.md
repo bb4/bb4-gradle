@@ -20,15 +20,15 @@ The **Java 25 toolchain** requirement means:
 1. **This plugin** (`bb4-gradle`) is compiled with Java 25, and requires a Gradle daemon running on Java 25 or later to execute.
 2. **Consumer projects** that apply `com.barrybecker4.bb4.base` or `com.barrybecker4.bb4.scala-library` will default to Java 25 toolchains for compilation.
 
-**Bytecode target**: By default, consumer projects produce **Java 25 bytecode**. If your downstream consumers must run on older JVMs, you can override the bytecode/API level using `--release`:
+**Bytecode target**: By default, consumer projects produce **Java 25 bytecode**. To target an older API/bytecode level while keeping the Java 25 toolchain:
 
 ```groovy
-tasks.withType(JavaCompile).configureEach {
-    options.release = 21  // or 17, etc.
+bb4 {
+    release = 21  // or 17, etc. — sets javac --release and scalac -release:
 }
 ```
 
-For Scala projects targeting older runtimes, configure the Scala compiler's `-release` or `-target` flag similarly. Note that using a newer toolchain with an older release target is the recommended approach for forward compatibility while maintaining backward runtime support.
+Leave `bb4.release` unset for toolchain-only defaults.
 
 **Minimum supported:** Gradle **9.1+** and JDK **25**.
 
@@ -41,6 +41,7 @@ For Scala projects targeting older runtimes, configure the Scala compiler's `-re
 | `com.barrybecker4.bb4.scala-library` | `java-library` + Scala, bb4 source layouts, core test deps (JUnit 5.14 + ScalaTest, no Vintage), default Scala flags (`-deprecation`, `-feature`, `-Wunused:imports`), quiet failure test logging with assertions, jar/manifest conventions; optional `bb4.htmlReports` |
 | `com.barrybecker4.bb4.publish` | `maven-publish` + signing, Maven Central / Central Portal, sources/javadoc/scaladoc jars (single artifact) |
 | `com.barrybecker4.bb4.application` | `application` plugin, `run` stdin, `bb4.apps` → `run*` / `create*App`, website deploy tasks, distribution tweaks; optional `bb4.jpackage` native installers |
+| `com.barrybecker4.bb4.quality` | Optional Spotless + Scalafmt for `scala-source` / `scala-test` (not applied by `scala-library`) |
 
 Also published from this repo:
 
@@ -108,6 +109,7 @@ bb4 {
     mainClass.set('com.example.Main')    // optional jar manifest / application main
     // repository.set('bb4-my-lib')      // optional GitHub repo name for POM url/scm
     // scalaVersion.set('3.10.0')        // optional override (scala-library)
+    // release = 21                     // optional bytecode target (Java + Scala)
 
     // Optional: ScalaTest HTML reporter runtime deps (scala-xml + flexmark-all)
     // htmlReports {
@@ -171,6 +173,7 @@ The plugins are designed to work in **any application order**:
 | `bb4.scala-library` + `bb4.publish` | Scala library with publishing (sources + javadoc + scaladoc) |
 | `bb4.scala-library` + `bb4.application` | App / installer-only Scala project (`bb4.mainClass` wired; no Central publish) |
 | `bb4.scala-library` + `bb4.publish` + `bb4.application` | Scala app that also publishes library coordinates (rare) |
+| `bb4.scala-library` + `bb4.quality` | Same as scala-library, plus Spotless/Scalafmt (`spotlessCheck` on `check`) |
 
 Source layout expected by `scala-library`:
 

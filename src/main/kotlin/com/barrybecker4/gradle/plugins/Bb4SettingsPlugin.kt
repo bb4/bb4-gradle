@@ -41,6 +41,7 @@ abstract class Bb4SettingsPlugin @Inject constructor(
             it.id("com.barrybecker4.bb4.publish").version(pluginVersion)
             it.id("com.barrybecker4.bb4.application").version(pluginVersion)
             it.id("com.barrybecker4.bb4.settings").version(pluginVersion)
+            it.id("com.barrybecker4.bb4.quality").version(pluginVersion)
         }
 
         settings.pluginManager.apply("org.gradle.toolchains.foojay-resolver-convention")
