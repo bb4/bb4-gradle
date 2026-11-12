@@ -119,7 +119,7 @@ class Bb4JpackageFunctionalTest {
         assertTrue(result.output.contains('Missing jpackage icon'))
     }
 
-    private String enabledBuild(String jpackageBody) {
+    private static String enabledBuild(String jpackageBody) {
         """
             plugins {
                 id 'com.barrybecker4.bb4.scala-library'
