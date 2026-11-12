@@ -16,6 +16,10 @@ All notable changes to this project are documented in this file.
 - **`bb4.quality` ([#43](https://github.com/bb4/bb4-gradle/issues/43)):** opt-in Spotless + Scalafmt
   (`com.barrybecker4.bb4.quality`) for `scala-source` / `scala-test`. Uses the project's
   `.scalafmt.conf` when present, otherwise a packaged minimal Scala 3 config.
+- **Org reusable CI ([#43](https://github.com/bb4/bb4-gradle/issues/43)):** shared workflow
+  [`bb4-ci.yml`](https://github.com/bb4/.github/blob/main/.github/workflows/bb4-ci.yml) and
+  [`downstream-dispatch.json`](https://github.com/bb4/.github/blob/main/downstream-dispatch.json)
+  in `bb4/.github` (consumers switch in follow-up PRs).
 
 ### Changed
 
