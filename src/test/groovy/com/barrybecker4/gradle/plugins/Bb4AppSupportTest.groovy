@@ -51,9 +51,25 @@ class Bb4AppSupportTest {
     }
 
     @Test
-    void 'applicationNameFor prefers command'() {
+    void 'applicationNameFor prefers command when single token'() {
         assertEquals('bb4-sudoku', Bb4AppSupport.applicationNameFor('sudoku', [command: 'bb4-sudoku']))
         assertEquals('bb4-maze', Bb4AppSupport.applicationNameFor('maze', [:]))
+        assertEquals('bb4-dice', Bb4AppSupport.applicationNameFor('dice', [
+            command: 'bb4-simulator -panel_class com.example.Dice'
+        ]))
+        assertEquals('bb4-text-adventure', Bb4AppSupport.applicationNameFor('textAdventure', [
+            applicationName: 'bb4-text-adventure',
+            command: 'bb4-text-adventure ludlowScript.xml'
+        ]))
+    }
+
+    @Test
+    void 'programArgsFromProps uses script and resourcePath'() {
+        def args = Bb4AppSupport.programArgsFromProps([
+            script: 'ludlowScript.xml',
+            resourcePath: 'com/example/ludlow/'
+        ])
+        assertEquals(['ludlowScript.xml', 'com/example/ludlow/'], args)
     }
 
     @Test

@@ -27,6 +27,11 @@ abstract class Bb4AppEntry @Inject constructor(private val entryName: String) : 
     abstract val macPackageName: Property<String>
     abstract val flag: Property<String>
     abstract val panelClass: Property<String>
+    abstract val applicationName: Property<String>
+    abstract val script: Property<String>
+    abstract val resourcePath: Property<String>
+    /** When false, skip generated CreateStartScripts for this app (run* still registered). */
+    abstract val createStartScript: Property<Boolean>
 
     override fun getName(): String = entryName
 }
@@ -82,6 +87,9 @@ class Bb4AppsContainer(
             stringProp(spec, "flag")?.let { entry.flag.set(it) }
             stringProp(spec, "panelClass")?.let { entry.panelClass.set(it) }
                 ?: stringProp(spec, "panel_class")?.let { entry.panelClass.set(it) }
+            stringProp(spec, "applicationName")?.let { entry.applicationName.set(it) }
+            stringProp(spec, "script")?.let { entry.script.set(it) }
+            stringProp(spec, "resourcePath")?.let { entry.resourcePath.set(it) }
 
             if (spec.containsKey("startOnFirstThreadMac")) {
                 entry.startOnFirstThreadMac.set(spec["startOnFirstThreadMac"] == true)
@@ -91,6 +99,9 @@ class Bb4AppsContainer(
             }
             if (spec.containsKey("console")) {
                 entry.console.set(spec["console"] == true)
+            }
+            if (spec.containsKey("createStartScript")) {
+                entry.createStartScript.set(spec["createStartScript"] != false)
             }
             listProp(spec, "args")?.let { entry.args.set(it) }
             listProp(spec, "jvmArgs")?.let { entry.jvmArgs.set(it) }
@@ -167,14 +178,29 @@ object Bb4AppSupport {
             else -> return listOf(raw.toString())
         }
         val panel = (propMap["panelClass"] ?: propMap["panel_class"])?.toString()?.takeIf { it.isNotBlank() }
-        return if (panel != null) listOf("-panel_class", panel) else emptyList()
+        if (panel != null) {
+            return listOf("-panel_class", panel)
+        }
+        val args = mutableListOf<String>()
+        propMap["script"]?.toString()?.takeIf { it.isNotBlank() }?.let { args.add(it) }
+        propMap["resourcePath"]?.toString()?.takeIf { it.isNotBlank() }?.let { args.add(it) }
+        return args
     }
 
     @JvmStatic
     fun applicationNameFor(appId: String, propMap: Map<String, Any?>): String {
+        propMap["applicationName"]?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
         val command = propMap["command"]?.toString()?.trim().orEmpty()
-        return command.ifEmpty { "bb4-$appId" }
+        // HTML command lines often include args; CreateStartScripts needs a single token.
+        if (command.isNotEmpty() && !command.contains(' ')) {
+            return command
+        }
+        return "bb4-$appId"
     }
+
+    @JvmStatic
+    fun shouldCreateStartScript(propMap: Map<String, Any?>): Boolean =
+        !(propMap.containsKey("createStartScript") && propMap["createStartScript"] == false)
 
     @JvmStatic
     fun toPropMap(entry: Bb4AppEntry): Map<String, Any?> {
@@ -195,6 +221,9 @@ object Bb4AppSupport {
             map["panelClass"] = it
             map["panel_class"] = it
         }
+        entry.applicationName.orNull?.takeIf { it.isNotBlank() }?.let { map["applicationName"] = it }
+        entry.script.orNull?.takeIf { it.isNotBlank() }?.let { map["script"] = it }
+        entry.resourcePath.orNull?.takeIf { it.isNotBlank() }?.let { map["resourcePath"] = it }
         if (entry.startOnFirstThreadMac.isPresent) {
             map["startOnFirstThreadMac"] = entry.startOnFirstThreadMac.get()
         }
@@ -203,6 +232,9 @@ object Bb4AppSupport {
         }
         if (entry.console.isPresent) {
             map["console"] = entry.console.get()
+        }
+        if (entry.createStartScript.isPresent) {
+            map["createStartScript"] = entry.createStartScript.get()
         }
         val args = entry.args.getOrElse(emptyList())
         if (args.isNotEmpty()) {

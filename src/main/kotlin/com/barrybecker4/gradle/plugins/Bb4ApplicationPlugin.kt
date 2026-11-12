@@ -178,25 +178,30 @@ class Bb4ApplicationPlugin : Plugin<Project> {
                     run.standardInput = System.`in`
                 }
 
-                val createTask = project.tasks.register("create${capitalized}App", CreateStartScripts::class.java) { scripts ->
-                    scripts.description = description
-                    scripts.mainClass.set(mainClassName)
-                    scripts.classpath = project.tasks.named("startScripts", CreateStartScripts::class.java)
-                        .get().classpath
-                    scripts.outputDir = project.tasks.named("startScripts", CreateStartScripts::class.java)
-                        .get().outputDir
-                    scripts.applicationName = applicationName
-                    scripts.defaultJvmOpts = jvmArgs
-                    if (jarMapJarTaskNames.isNotEmpty()) {
-                        scripts.dependsOn(jarMapJarTaskNames)
+                if (Bb4AppSupport.shouldCreateStartScript(propMap)) {
+                    val createTask = project.tasks.register(
+                        "create${capitalized}App",
+                        CreateStartScripts::class.java,
+                    ) { scripts ->
+                        scripts.description = description
+                        scripts.mainClass.set(mainClassName)
+                        scripts.classpath = project.tasks.named("startScripts", CreateStartScripts::class.java)
+                            .get().classpath
+                        scripts.outputDir = project.tasks.named("startScripts", CreateStartScripts::class.java)
+                            .get().outputDir
+                        scripts.applicationName = applicationName
+                        scripts.defaultJvmOpts = jvmArgs
+                        if (jarMapJarTaskNames.isNotEmpty()) {
+                            scripts.dependsOn(jarMapJarTaskNames)
+                        }
                     }
-                }
 
-                appExt.applicationDistribution.into("bin") { copy ->
-                    copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                    copy.from(createTask)
-                    copy.filePermissions { perms ->
-                        perms.unix("755")
+                    appExt.applicationDistribution.into("bin") { copy ->
+                        copy.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                        copy.from(createTask)
+                        copy.filePermissions { perms ->
+                            perms.unix("755")
+                        }
                     }
                 }
             }
