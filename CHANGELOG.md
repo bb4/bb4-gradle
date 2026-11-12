@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- **One-task Central publishing ([#39](https://github.com/bb4/bb4-gradle/issues/39)):** `./gradlew publishArtifacts` uploads a signed deployment bundle via the Central Publisher API for releases (`AUTOMATIC` by default; override with `bb4.central.publishingType=USER_MANAGED`). Snapshots still deploy to maven-snapshots. Promote curl / OSSRH Staging API release deploy removed.
+- **POM from project props:** publications use `project.group`, `project.description`, and `bb4.repository` (GitHub repo under `barrybecker4`) for URL/SCM instead of hardcoded values.
+- **CycloneDX SBOM:** every Maven publication gets a `cyclonedx` JSON sidecar.
+- **In-memory GPG:** `signingKey` / `signingPassword` (optional `signingKeyId`), including `ORG_GRADLE_PROJECT_*` env, for CI without a secring path.
 - **Platform ([#37](https://github.com/bb4/bb4-gradle/issues/37)):** `com.barrybecker4:bb4-platform` (BOM) and `com.barrybecker4:bb4-catalog` (version catalog) from the `:platform` subproject. Per-library version lines live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml); the plugin version key `bb4-gradle` is rewritten from this project's version at publish.
 - **`com.barrybecker4.bb4.settings`:** Settings plugin that enforces Gradle **9.1+**, applies Foojay 1.0.0, adds the Central snapshots repository, installs the `bb4Libs` catalog, and `includeBuild`s sibling `bb4-*` checkouts (disable with `-Pbb4.includeSiblings=false`).
 - **Single 3.0 floor:** Gradle **9.1+**, Java **25**, wrapper **9.8.2**.

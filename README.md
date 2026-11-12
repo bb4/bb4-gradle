@@ -179,27 +179,16 @@ The CI workflow (`.github/workflows/ci.yml`) runs the suite on every push and pu
 Full runbook: [docs/publishing-sonatype.md](docs/publishing-sonatype.md). Short version:
 
 1. Set `version` in `build.gradle.kts` (release = **no** `-SNAPSHOT`).
-2. Credentials + GPG in `~/.gradle/gradle.properties`: `ossrhToken`, `ossrhTokenPassword`, signing props
+2. Credentials + GPG: `ossrhToken` / `ossrhTokenPassword` (or `OSSRH_*` env), plus either
+   keyring signing props or in-memory `signingKey` / `signingPassword`
    (Central Portal **user token**, not legacy OSSRH).
-3. `./gradlew clean build` then `./gradlew publish`.
-4. **Required for releases:** promote staging into the Portal (same IP as the upload), or the
-   Deployments page stays empty:
+3. `./gradlew clean build` then **`./gradlew publishArtifacts`**.
+   - Releases: signed bundle → Central Publisher API (`AUTOMATIC` by default).
+   - Snapshots: deploy to Central maven-snapshots.
+4. After Central is live, commit/tag the release and bump `version` to the next `-SNAPSHOT`.
 
-   ```bash
-   TOKEN_USER=$(grep -E '^ossrhToken=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
-   TOKEN_PASS=$(grep -E '^ossrhTokenPassword=' "$HOME/.gradle/gradle.properties" | cut -d= -f2-)
-   AUTH=$(printf '%s:%s' "$TOKEN_USER" "$TOKEN_PASS" | base64 | tr -d '\n')
-   curl -X POST \
-     "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/com.barrybecker4?publishing_type=user_managed" \
-     -H "Authorization: Bearer ${AUTH}" -H "accept: */*" -d ''
-   ```
-
-5. At [central.sonatype.com/publishing](https://central.sonatype.com/publishing), confirm **VALIDATED**, then **Publish**.
-6. After Central is live, commit/tag the release and bump `version` to the next `-SNAPSHOT`.
-
-Snapshots go to the Central snapshot repo (no promote step). Releases use the OSSRH Staging API
-deploy URL and **must** use the promote curl above. POM metadata (URL, license, SCM, developers)
-is applied to **all** publications including plugin markers — Central rejects marker-only omissions.
+POM metadata uses `project.group`, `project.description`, and `bb4.repository` (GitHub repo name).
+A CycloneDX SBOM (`classifier=cyclonedx`) is attached to every publication.
 
 ## Migration from script JAR (1.x)
 

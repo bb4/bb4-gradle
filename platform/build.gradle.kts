@@ -6,11 +6,14 @@ plugins {
     `version-catalog`
     `maven-publish`
     signing
+    id("org.cyclonedx.bom") version "3.5.1"
 }
 
 group = "com.barrybecker4"
 version = rootProject.version
 description = "bb4 recommended library and plugin versions (BOM + version catalog)"
+
+extra["bb4.repository"] = "bb4-gradle"
 
 val renderedCatalog = rootProject.layout.buildDirectory.file("generated/bb4-libs.versions.toml")
 
