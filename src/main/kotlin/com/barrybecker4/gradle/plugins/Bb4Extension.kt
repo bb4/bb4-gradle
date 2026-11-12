@@ -48,6 +48,16 @@ open class Bb4Extension @Inject constructor(objects: ObjectFactory) {
             .convention(emptyMap())
 
     /**
+     * Compatibility bag for consumers still calling `bb4.jarMap.put(...)`.
+     * Publishing no longer reads this; prefer a single project jar.
+     */
+    @Suppress("UNCHECKED_CAST")
+    @Deprecated("jarMap publishing was removed; leave empty and publish the project jar")
+    val jarMap: MapProperty<String, Map<String, Any?>> =
+        objects.mapProperty(String::class.java, Map::class.java as Class<Map<String, Any?>>)
+            .convention(emptyMap())
+
+    /**
      * Root directory for `deploySchemas` (`.dtd` / `.xsd` only under this tree).
      * Convention set by plugins to `source/schema` via project layout.
      */
