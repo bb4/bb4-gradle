@@ -242,6 +242,57 @@ class Bb4PluginsFunctionalTest {
     }
 
     @Test
+    void 'publish plugin generates POM with correct GitHub organization URLs'() {
+        settingsFile.toFile().text = """
+            pluginManagement {
+                repositories {
+                    mavenLocal()
+                    gradlePluginPortal()
+                }
+            }
+            rootProject.name = 'test-pom-urls'
+        """
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.publish'
+            }
+            
+            group = 'com.test'
+            version = '1.0-SNAPSHOT'
+            
+            publishing {
+                repositories {
+                    mavenLocal()
+                }
+            }
+        """
+
+        def sourceDir = testProjectDir.resolve('source')
+        Files.createDirectories(sourceDir)
+        sourceDir.resolve('Sample.java').toFile().text = '''
+            public class Sample {}
+        '''
+
+        def result = runGradle('generatePomFileForMavenJavaPublication')
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':generatePomFileForMavenJavaPublication').outcome)
+        
+        def pomFile = testProjectDir.resolve('build/publications/mavenJava/pom-default.xml').toFile()
+        assertTrue(pomFile.exists(), "POM file should be generated")
+        
+        def pomContent = pomFile.text
+        assertTrue(pomContent.contains('<url>https://github.com/bb4/test-pom-urls</url>'), 
+            "POM should contain correct project URL")
+        assertTrue(pomContent.contains('<url>https://github.com/bb4/test-pom-urls</url>') &&
+            pomContent.contains('<connection>scm:git:https://github.com/bb4/test-pom-urls.git</connection>') &&
+            pomContent.contains('<developerConnection>scm:git:ssh://git@github.com/bb4/test-pom-urls.git</developerConnection>'),
+            "POM should contain correct SCM URLs")
+        assertFalse(pomContent.contains('barrybecker4/test-pom-urls'), 
+            "POM should not contain old barrybecker4 organization references")
+    }
+
+    @Test
     void 'publish plugin multi-artifact mode creates separate publications'() {
         settingsFile.toFile().text = """
             pluginManagement {

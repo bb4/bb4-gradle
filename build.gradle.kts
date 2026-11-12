@@ -60,8 +60,8 @@ java {
 }
 
 gradlePlugin {
-    website = URI("https://github.com/barrybecker4/bb4-gradle").toString()
-    vcsUrl = "https://github.com/barrybecker4/bb4-gradle.git"
+    website = URI("https://github.com/bb4/bb4-gradle").toString()
+    vcsUrl = "https://github.com/bb4/bb4-gradle.git"
     plugins {
         create("bb4Base") {
             id = "com.barrybecker4.bb4.base"
@@ -165,11 +165,11 @@ afterEvaluate {
         pom {
             name.set(project.name)
             description.set(project.description ?: project.name)
-            url.set("https://github.com/barrybecker4/${project.name}")
+            url.set("https://github.com/bb4/${project.name}")
             scm {
-                url.set("scm:git@github.com:barrybecker4/${project.name}.git")
-                connection.set("scm:git@github.com:barrybecker4/${project.name}.git")
-                developerConnection.set("scm:git@github.com:barrybecker4/${project.name}.git")
+                url.set("https://github.com/bb4/${project.name}")
+                connection.set("scm:git:https://github.com/bb4/${project.name}.git")
+                developerConnection.set("scm:git:ssh://git@github.com/bb4/${project.name}.git")
             }
             licenses {
                 license {
