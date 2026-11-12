@@ -1,43 +1,7 @@
 // Copyright by Barry G. Becker, 2021–2026. Licensed under MIT License: http://www.opensource.org/licenses/MIT
 import java.net.URI
-import org.gradle.api.Project
+import java.util.regex.Pattern
 import org.gradle.api.Task
-import org.gradle.api.publish.maven.MavenPublication
-
-/** Legacy OSSRH hosts return 405 after EOL; ~/.gradle/gradle.properties often still overrides with these. */
-private fun Project.resolveBb4SnapshotRepoUrl(): String {
-    val defaultUrl = "https://central.sonatype.com/repository/maven-snapshots/"
-    val explicit = (findProperty("bb4.ossrh.snapshotUrl") as String?)
-        ?: (findProperty("bb4.central.snapshotUrl") as String?)
-    val trimmed = explicit?.trim().orEmpty()
-    if (trimmed.isEmpty()) return defaultUrl
-    if (trimmed.contains("oss.sonatype.org")) {
-        logger.warn(
-            "bb4-gradle: ignoring legacy bb4.ossrh.snapshotUrl (OSSRH EOL): {} — using {}",
-            trimmed,
-            defaultUrl,
-        )
-        return defaultUrl
-    }
-    return trimmed
-}
-
-private fun Project.resolveBb4ReleaseStagingRepoUrl(): String {
-    val defaultUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
-    val explicit = (findProperty("bb4.ossrh.releaseStagingUrl") as String?)
-        ?: (findProperty("bb4.central.releaseStagingUrl") as String?)
-    val trimmed = explicit?.trim().orEmpty()
-    if (trimmed.isEmpty()) return defaultUrl
-    if (trimmed.contains("oss.sonatype.org")) {
-        logger.warn(
-            "bb4-gradle: ignoring legacy bb4.ossrh.releaseStagingUrl (OSSRH EOL): {} — using {}",
-            trimmed,
-            defaultUrl,
-        )
-        return defaultUrl
-    }
-    return trimmed
-}
 
 plugins {
     groovy
@@ -91,11 +55,19 @@ gradlePlugin {
             tags = listOf("bb4", "application", "distribution")
             implementationClass = "com.barrybecker4.gradle.plugins.Bb4ApplicationPlugin"
         }
+        create("bb4Settings") {
+            id = "com.barrybecker4.bb4.settings"
+            displayName = "bb4 settings conventions"
+            description = "Foojay, Central snapshots, version catalog, and sibling includeBuild for bb4 projects"
+            tags = listOf("bb4", "settings", "version-catalog")
+            implementationClass = "com.barrybecker4.gradle.plugins.Bb4SettingsPlugin"
+        }
     }
 }
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
     // Resolve bb4 and other SNAPSHOTs published via Central Portal (OSSRH EOL June 2025).
     maven { url = URI("https://central.sonatype.com/repository/maven-snapshots/") }
 }
@@ -119,6 +91,9 @@ tasks.named("check") {
 
 dependencies {
     implementation(localGroovy())
+    // Foojay convention plugin so Bb4SettingsPlugin can apply it without a consumer version.
+    // Implementation jar (Plugin Portal marker points here).
+    implementation("org.gradle.toolchains:foojay-resolver:1.0.0")
     testImplementation(gradleTestKit())
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.spockframework:spock-core:2.5-groovy-4.0")
@@ -127,74 +102,52 @@ dependencies {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    // Settings functional tests resolve the plugin from mavenLocal (TestKit cannot
+    // includeBuild this project while it is itself building).
+    dependsOn("publishToMavenLocal")
 }
 
-val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")
+fun renderBb4Catalog(text: String, projectVersion: String): String {
+    val pattern = Pattern.compile("""(?m)^bb4-gradle\s*=\s*"[^"]+"\s*$""")
+    if (!pattern.matcher(text).find()) {
+        error("Missing version key 'bb4-gradle' in catalog toml")
+    }
+    return pattern.matcher(text).replaceFirst("bb4-gradle = \"$projectVersion\"")
+}
 
-publishing {
-    repositories {
-        maven {
-            // Central Publisher Portal (OSSRH sunset). See docs/publishing-sonatype.md
-            // Override via bb4.ossrh.snapshotUrl / bb4.ossrh.releaseStagingUrl (or bb4.central.*).
-            val snapshotRepoUrl = resolveBb4SnapshotRepoUrl()
-            val releasesRepoUrl = resolveBb4ReleaseStagingRepoUrl()
-            url = URI(if (version.toString().endsWith("-SNAPSHOT")) snapshotRepoUrl else releasesRepoUrl)
-            credentials {
-                username = providers.gradleProperty("ossrhToken").orNull
-                    ?: System.getenv("OSSRH_USERNAME")
-                    ?: ""
-                password = providers.gradleProperty("ossrhTokenPassword").orNull
-                    ?: System.getenv("OSSRH_PASSWORD")
-                    ?: ""
-            }
-        }
+val generatedCatalogDir = layout.buildDirectory.dir("generated")
+val generatedCatalogFile = generatedCatalogDir.map { it.file("bb4-libs.versions.toml") }
+
+// Write at configuration time so :platform can consume the file via version-catalog `from(files(...))`.
+val renderedCatalogText = renderBb4Catalog(
+    layout.projectDirectory.file("gradle/libs.versions.toml").asFile.readText(),
+    version.toString(),
+)
+val catalogOut = generatedCatalogFile.get().asFile
+catalogOut.parentFile.mkdirs()
+catalogOut.writeText(renderedCatalogText)
+
+val generateBb4Catalog by tasks.registering {
+    val source = layout.projectDirectory.file("gradle/libs.versions.toml")
+    inputs.file(source)
+    inputs.property("projectVersion", version.toString())
+    outputs.file(generatedCatalogFile)
+    doLast {
+        val out = generatedCatalogFile.get().asFile
+        out.parentFile.mkdirs()
+        out.writeText(renderBb4Catalog(source.asFile.readText(), version.toString()))
     }
 }
 
-// Publications (including plugin markers from java-gradle-plugin) are registered after
-// our script runs; configure Central-required POM metadata on every Maven publication.
-// Only register signing for non-SNAPSHOT: if `signing.sign(...)` runs while `isRequired` is false
-// and no GPG key is configured, Gradle can fail evaluating the Sign task's onlyIf predicate.
-afterEvaluate {
-    publishing.publications.withType<MavenPublication>().configureEach {
-        if (name == "pluginMaven") {
-            groupId = "com.barrybecker4"
-            artifactId = "bb4-gradle"
-        }
-        // Plugin marker POMs also need these or Central rejects the deployment.
-        pom {
-            name.set(project.name)
-            description.set(project.description ?: project.name)
-            url.set("https://github.com/bb4/${project.name}")
-            scm {
-                url.set("https://github.com/bb4/${project.name}")
-                connection.set("scm:git:https://github.com/bb4/${project.name}.git")
-                developerConnection.set("scm:git:ssh://git@github.com/bb4/${project.name}.git")
-            }
-            licenses {
-                license {
-                    name.set("The MIT license")
-                    url.set("http://www.opensource.org/licenses/MIT")
-                    distribution.set("repo")
-                }
-            }
-            developers {
-                developer {
-                    id.set("barrybecker4")
-                    name.set("Barry G. Becker")
-                    email.set("barrybecker4@gmail.com")
-                }
-            }
-        }
+tasks.named<ProcessResources>("processResources") {
+    from(generatedCatalogFile) {
+        rename("bb4-libs.versions.toml", "libs.versions.toml")
+        into(".")
     }
-    if (isReleaseVersion) {
-        signing.sign(publishing.publications)
-    }
+    dependsOn(generateBb4Catalog)
 }
 
-signing {
-    isRequired = isReleaseVersion
-}
+apply(from = "gradle/bb4-central-publishing.gradle.kts")
 
 tasks.register<Task>("publishArtifacts") {
     description =
@@ -203,4 +156,5 @@ tasks.register<Task>("publishArtifacts") {
             "(see docs/publishing-sonatype.md) or the Portal stays empty."
     group = "publishing"
     dependsOn(tasks.named("publish"))
+    dependsOn(project(":platform").tasks.named("publish"))
 }

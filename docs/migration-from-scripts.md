@@ -75,14 +75,46 @@ bb4 {
      [docs/publishing-sonatype.md](../docs/publishing-sonatype.md). Same process as releasing bb4-gradle.
 3. Repeat for each bb4 repo (libraries first, then applications).
 
-## Compatibility matrix (2.x)
+## Compatibility matrix
 
 | bb4-gradle | Gradle | Java | Scala (default) |
 |-------------|--------|------|-----------------|
 | 2.0.x | 8.14+ | 21 | 3.10.0 |
-| 2.1.x | 9.1+ | 25 | 3.10. |
+| 2.1.x | 9.1+ | 25 | 3.10.0 |
+| 3.0.x | 9.1+ | 25 | 3.10.0 |
 
 **Note on Java 25**: The Java 25 toolchain requirement applies both to compiling `bb4-gradle` itself and to the Gradle daemon JVM running the plugins. Consumer projects default to Java 25 bytecode unless you explicitly set a `--release` flag to target older JVMs.
+
+## Migration to 3.0 (settings plugin + catalog)
+
+3.0 adds `com.barrybecker4.bb4.settings`, `bb4-platform`, and `bb4-catalog`. Prefer:
+
+```groovy
+pluginManagement {
+    def sibling = new File(settings.settingsDir, '../bb4-gradle')
+    if (sibling.directory && gradle.parent == null) includeBuild(sibling)
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
+    }
+}
+plugins {
+    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+}
+```
+
+```groovy
+plugins {
+    alias(bb4.plugins.scala.library)
+    alias(bb4.plugins.publish)
+}
+dependencies {
+    implementation bb4.common
+}
+```
+
+Adopting the settings plugin replaces per-repo Foojay lines and hand-written library `includeBuild` blocks. **`bb4-puzzles` and `bb4-simulations` must delete those `includeBuild` blocks** when they switch, or Gradle rejects a duplicate included build. Pass `-Pbb4.includeSiblings=false` to keep snapshot resolution without sibling substitution.
 
 ## `jarMap` (multi-jar publications)
 
