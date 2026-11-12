@@ -178,3 +178,26 @@ For each app repo (`bb4-games`, `bb4-puzzles`, `bb4-simulations`, `bb4-adventure
 7. README: describe as app / installers only, not published to Sonatype.
 
 Optional: update `bb4-website` so leaf apps are not described as deployed to Sonatype.
+
+## Shared quality & shared CI (#43)
+
+Consumer checklist (after `bb4-gradle` `3.0-SNAPSHOT` and `bb4/.github` `bb4-ci.yml` are published):
+
+1. Keep `bb4.settings` on `3.0-SNAPSHOT` (sibling `includeBuild` of `bb4-gradle` is fine locally).
+2. Replace `.github/workflows/ci.yml` with a thin caller of
+   `bb4/.github/.github/workflows/bb4-ci.yml@main`. Prefer inputs over forking the workflow:
+   - `publish: true` (+ OSSRH secrets) when the repo publishes SNAPSHOTs
+   - `notify-downstream: true` (+ `BB4_DISPATCH_TOKEN`) when the repo fans out rebuilds
+     (list repos in [`downstream-dispatch.json`](https://github.com/bb4/.github/blob/main/downstream-dispatch.json))
+   - `use-xvfb: true` for GUI tests (e.g. `bb4-simulations`)
+   - `extra-gradle-args` (e.g. `-Djava.awt.headless=true` for `bb4-shortest-paths`)
+   - `publish-gradle-args` for Central rate-limit flags on multi-artifact apps
+3. Delete duplicated build logic now owned by plugins: local Scala `-deprecation` /
+   `-feature` / `-Wunused:imports`, local `testLogging` / Vintage engine includes,
+   hand-rolled `options.release` (use `bb4 { release = … }` instead), and jpackage
+   `mainJarKey` (removed).
+4. Migrate any remaining JUnit 4 tests to Jupiter; drop `junit:junit` and
+   `junit-vintage-engine` (plugin engines are `junit-jupiter` + `scalatest` only).
+5. Leave `bb4.quality` off unless you want Spotless/Scalafmt gates. New projects from
+   `bb4-project-template` already apply it — run `./gradlew spotlessApply` once.
+6. `./gradlew build` (and CI) green before merge. Do not add `--info` back to the default CI command.
