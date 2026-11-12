@@ -139,4 +139,18 @@ open class Bb4Extension @Inject constructor(objects: ObjectFactory) {
         action.execute(jpackage)
         onJpackageConfigured?.invoke()
     }
+
+    val htmlReports: Bb4HtmlReportsExtension =
+        objects.newInstance(Bb4HtmlReportsExtension::class.java)
+
+    private var onHtmlReportsConfigured: (() -> Unit)? = null
+
+    internal fun whenHtmlReportsConfigured(callback: () -> Unit) {
+        onHtmlReportsConfigured = callback
+    }
+
+    fun htmlReports(action: Action<in Bb4HtmlReportsExtension>) {
+        action.execute(htmlReports)
+        onHtmlReportsConfigured?.invoke()
+    }
 }

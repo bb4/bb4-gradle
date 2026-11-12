@@ -20,10 +20,6 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
         project.pluginManager.apply(JavaLibraryPlugin::class.java)
         project.pluginManager.apply(ScalaPlugin::class.java)
 
-        project.pluginManager.apply("project-report")
-        project.pluginManager.apply("idea")
-        project.pluginManager.apply("eclipse")
-
         val sourceSets = project.extensions.getByType(SourceSetContainer::class.java)
         sourceSets.named("main").configure { main: SourceSet ->
             main.java.setSrcDirs(listOf("source"))
@@ -45,6 +41,20 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             bb4.scalaVersion.map { "org.scala-lang:scala3-library_3:$it" },
         )
         Bb4Conventions.addScalaLibraryDependenciesExceptScalaLibrary(project.dependencies)
+
+        bb4.whenHtmlReportsConfigured {
+            if (bb4.htmlReports.enabled.get()) {
+                val deps = project.dependencies
+                deps.add(
+                    "testRuntimeOnly",
+                    "org.scala-lang.modules:scala-xml_3:${Bb4DependencyVersions.SCALA_XML}",
+                )
+                deps.add(
+                    "testRuntimeOnly",
+                    "com.vladsch.flexmark:flexmark-all:${Bb4DependencyVersions.FLEXMARK}",
+                )
+            }
+        }
 
         project.tasks.withType(Test::class.java).configureEach { test ->
             test.useJUnitPlatform {
