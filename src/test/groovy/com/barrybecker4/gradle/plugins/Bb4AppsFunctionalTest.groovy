@@ -81,6 +81,50 @@ class Bb4AppsFunctionalTest {
     }
 
     @Test
+    void 'run task uses jpackage defaultMainClass when the app has no mainClass'() {
+        writeMain('com.test.Dice')
+        def dir = testProjectDir.resolve('source/com/test')
+        Files.createDirectories(dir)
+        dir.resolve('Launcher.java').toFile().text = '''
+            package com.test;
+            public class Launcher {
+                public static void main(String[] args) {
+                    System.out.println("LAUNCHER " + String.join(" ", args));
+                }
+            }
+        '''
+        buildFile.toFile().text = """
+            plugins {
+                id 'com.barrybecker4.bb4.scala-library'
+                id 'com.barrybecker4.bb4.application'
+            }
+            group = 'com.test'
+            version = '1.0'
+            bb4 {
+                mainClass.set('com.test.Dice')
+                apps.put('snake', [
+                    title: 'Snake',
+                    panel_class: 'com.test.SnakePanel',
+                    command: 'bb4-simulator -panel_class com.test.SnakePanel',
+                    description: 'Snake',
+                    longDescription: 'Snake long',
+                    createStartScript: false
+                ])
+                jpackage {
+                    defaultMainClass = 'com.test.Launcher'
+                }
+            }
+        """
+
+        def result = runGradle('runSnake', '--quiet')
+        assertTrue(
+            result.output.contains('LAUNCHER -panel_class com.test.SnakePanel'),
+            result.output
+        )
+        assertFalse(result.output.contains('\nDice'), result.output)
+    }
+
+    @Test
     void 'deploySchemas ignores xsd outside schemaDirectory'() {
         writeMain('com.test.Main')
         Files.createDirectories(testProjectDir.resolve('source/schema'))

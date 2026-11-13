@@ -187,6 +187,23 @@ object Bb4AppSupport {
         return args
     }
 
+    /**
+     * Per-app main class, then the shared launcher (`jpackage.defaultMainClass`),
+     * then the project application main class.
+     * Apps that only set `panel_class` must not inherit a single-simulator main
+     * such as DiceSimulator, which ignores those arguments.
+     */
+    @JvmStatic
+    fun mainClassForApp(
+        propMap: Map<String, Any?>,
+        sharedMainClass: String?,
+        projectMainClass: String?,
+    ): String {
+        propMap["mainClass"]?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
+        sharedMainClass?.takeIf { it.isNotBlank() }?.let { return it }
+        return projectMainClass?.takeIf { it.isNotBlank() } ?: ""
+    }
+
     @JvmStatic
     fun applicationNameFor(appId: String, propMap: Map<String, Any?>): String {
         propMap["applicationName"]?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }

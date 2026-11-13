@@ -152,10 +152,11 @@ class Bb4ApplicationPlugin : Plugin<Project> {
 
             appMap.forEach { (appId, propMap) ->
                 val capitalized = Bb4AppSupport.capitalizeAppId(appId)
-                val mainClassName = propMap["mainClass"]?.toString()?.takeIf { it.isNotBlank() }
-                    ?: bb4?.mainClass?.orNull?.takeIf { it.isNotBlank() }
-                    ?: appExt.mainClass.orNull
-                    ?: ""
+                val mainClassName = Bb4AppSupport.mainClassForApp(
+                    propMap,
+                    bb4?.jpackage?.defaultMainClass?.orNull,
+                    bb4?.mainClass?.orNull?.takeIf { it.isNotBlank() } ?: appExt.mainClass.orNull,
+                )
                 val description = propMap["description"]?.toString() ?: "Run $appId"
                 val jvmArgs = Bb4AppSupport.defaultJvmArgsFromProps(propMap, osName)
                 val programArgs = Bb4AppSupport.programArgsFromProps(propMap)
