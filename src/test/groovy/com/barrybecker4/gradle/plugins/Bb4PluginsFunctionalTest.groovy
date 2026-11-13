@@ -715,7 +715,7 @@ class Bb4PluginsFunctionalTest {
             
             bb4 {
                 archivesBaseName.set('custom-name')
-                scalaVersion.set('3.10.0')
+                scalaVersion.set('3.10.1')
             }
         """
 

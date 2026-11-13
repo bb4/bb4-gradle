@@ -9,9 +9,9 @@ Published **Gradle convention plugins** for Barry’s bb4 Scala/Java projects.
 | Item | Version |
 |------|---------|
 | Gradle (minimum) | **9.1+** (enforced by `com.barrybecker4.bb4.settings`) |
-| Gradle (wrapper in this repo) | **9.8.2** (see `gradle/wrapper/gradle-wrapper.properties`) |
+| Gradle (wrapper in this repo) | **9.9.1** (see `gradle/wrapper/gradle-wrapper.properties`) |
 | Java toolchain | **25** (enforced by `com.barrybecker4.bb4.base`) |
-| Scala (default in plugins) | **3.10.0** (override via `bb4 { scalaVersion.set("…") }` if needed) |
+| Scala (default in plugins) | **3.10.1** (override via `bb4 { scalaVersion.set("…") }` if needed) |
 
 ### Java Toolchain and Bytecode Compatibility
 
@@ -108,7 +108,7 @@ bb4 {
     archivesBaseName.set('my-artifact')  // optional; defaults to project.name
     mainClass.set('com.example.Main')    // optional jar manifest / application main
     // repository.set('bb4-my-lib')      // optional GitHub repo name for POM url/scm
-    // scalaVersion.set('3.10.0')        // optional override (scala-library)
+    // scalaVersion.set('3.10.1')        // optional override (scala-library)
     // release = 21                     // optional bytecode target (Java + Scala)
 
     // Optional: ScalaTest HTML reporter runtime deps (scala-xml + flexmark-all)

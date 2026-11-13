@@ -8,7 +8,7 @@ plugins {
     `java-gradle-plugin`
     `maven-publish`
     signing
-    id("org.jetbrains.kotlin.jvm") version "2.4.10"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
     id("org.cyclonedx.bom") version "3.5.1"
 }
 
@@ -87,7 +87,7 @@ repositories {
 testing {
     suites {
         register<JvmTestSuite>("functionalTest") {
-            useSpock("2.3-groovy-4.0")
+            useSpock("2.5-groovy-4.0")
             dependencies {
                 implementation(project())
             }

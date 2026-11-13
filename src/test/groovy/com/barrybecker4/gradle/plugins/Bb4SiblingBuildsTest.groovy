@@ -52,6 +52,6 @@ class Bb4SiblingBuildsTest {
     void 'gradle floor treats nine zero as below nine one'() {
         assertTrue(GradleVersion.version('9.0') < GradleVersion.version('9.1'))
         assertTrue(GradleVersion.version('9.1') >= GradleVersion.version('9.1'))
-        assertTrue(GradleVersion.version('9.8.2') >= GradleVersion.version('9.1'))
+        assertTrue(GradleVersion.version('9.9.1') >= GradleVersion.version('9.1'))
     }
 }

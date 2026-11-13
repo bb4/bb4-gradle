@@ -13,7 +13,7 @@ class Bb4CatalogTomlTest {
 [versions]
 bb4-gradle = "0.0.0"
 math = "3.0.1"
-scala = "3.10.0"
+scala = "3.10.1"
 junit = "5.14.4"
 
 [libraries]
@@ -22,7 +22,7 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
 
     @Test
     void 'version returns present key'() {
-        assertEquals('3.10.0', Bb4CatalogToml.version(SAMPLE, 'scala'))
+        assertEquals('3.10.1', Bb4CatalogToml.version(SAMPLE, 'scala'))
         assertEquals('5.14.4', Bb4CatalogToml.version(SAMPLE, 'junit'))
     }
 
@@ -39,7 +39,7 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
         def rendered = Bb4CatalogToml.render(SAMPLE, '3.0-SNAPSHOT')
         assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(rendered, 'bb4-gradle'))
         assertEquals('3.0.1', Bb4CatalogToml.version(rendered, 'math'))
-        assertEquals('3.10.0', Bb4CatalogToml.version(rendered, 'scala'))
+        assertEquals('3.10.1', Bb4CatalogToml.version(rendered, 'scala'))
     }
 
     @Test
@@ -52,7 +52,7 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
 
     @Test
     void 'dependency versions load scala and junit from packaged toml'() {
-        assertEquals('3.10.0', Bb4DependencyVersions.SCALA)
+        assertEquals('3.10.1', Bb4DependencyVersions.SCALA)
         assertEquals('5.14.4', Bb4DependencyVersions.JUNIT)
     }
 
@@ -92,7 +92,7 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
 base = { id = "com.barrybecker4.bb4.base" }
 publish = { id = "com.barrybecker4.bb4.publish", version.ref = "bb4-gradle" }
 ''')
-        assertEquals('3.10.0', versions.scala)
+        assertEquals('3.10.1', versions.scala)
         assertEquals('com.barrybecker4', libraries.find { it.alias == 'math' }.group)
         assertEquals('math', libraries.find { it.alias == 'math' }.versionRef)
         // Id-only plugin rows are skipped by applyTo (use from(toml) for those).
