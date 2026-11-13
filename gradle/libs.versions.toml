@@ -6,6 +6,7 @@ ui = "3.0-SNAPSHOT"
 sound = "3.0-SNAPSHOT"
 optimization = "3.0-SNAPSHOT"
 expression = "3.0-SNAPSHOT"
+xml = "3.0-SNAPSHOT"
 imageproc = "3.0-SNAPSHOT"
 shortest-paths = "3.0-SNAPSHOT"
 a-star = "3.0-SNAPSHOT"
@@ -28,6 +29,7 @@ ui = { module = "com.barrybecker4:bb4-ui", version.ref = "ui" }
 sound = { module = "com.barrybecker4:bb4-sound", version.ref = "sound" }
 optimization = { module = "com.barrybecker4:bb4-optimization", version.ref = "optimization" }
 expression = { module = "com.barrybecker4:bb4-expression", version.ref = "expression" }
+xml = { module = "com.barrybecker4:bb4-xml", version.ref = "xml" }
 imageproc = { module = "com.barrybecker4:bb4-imageproc", version.ref = "imageproc" }
 shortest-paths = { module = "com.barrybecker4:bb4-shortest-paths", version.ref = "shortest-paths" }
 a-star = { module = "com.barrybecker4:bb4-A-star", version.ref = "a-star" }
