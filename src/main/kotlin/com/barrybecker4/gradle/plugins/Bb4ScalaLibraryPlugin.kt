@@ -67,6 +67,15 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
                 }
             }
             compile.scalaCompileOptions.additionalParameters = params
+
+            // Zinc still pulls OpenHFT zero-allocation-hashing, which uses sun.misc.Unsafe.
+            // ScalaCompile forks a worker JVM; allow Unsafe there so Java 24+ does not warn.
+            val forkJvmArgs =
+                (compile.scalaCompileOptions.forkOptions.jvmArgs ?: emptyList()).toMutableList()
+            if (!forkJvmArgs.contains(SUN_MISC_UNSAFE_ALLOW)) {
+                forkJvmArgs.add(SUN_MISC_UNSAFE_ALLOW)
+            }
+            compile.scalaCompileOptions.forkOptions.jvmArgs = forkJvmArgs
         }
 
         // ScalaCompile args are a plain list — apply -release: after the build script sets bb4.release.
@@ -135,5 +144,8 @@ class Bb4ScalaLibraryPlugin : Plugin<Project> {
             "-feature",
             "-Wunused:imports",
         )
+
+        /** JEP 498: silence Zinc/OpenHFT Unsafe use on the forked Scala compiler JVM. */
+        const val SUN_MISC_UNSAFE_ALLOW: String = "--sun-misc-unsafe-memory-access=allow"
     }
 }

@@ -292,6 +292,8 @@ class Bb4PluginsFunctionalTest {
                     assert params.contains('-feature')
                     assert params.contains('-Wunused:imports')
                     assert !params.contains('-Werror')
+                    def forkJvmArgs = compileScala.scalaCompileOptions.forkOptions.jvmArgs ?: []
+                    assert forkJvmArgs.contains('--sun-misc-unsafe-memory-access=allow')
 
                     def testTask = tasks.named('test', Test).get()
                     assert testTask.enableAssertions
