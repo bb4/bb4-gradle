@@ -9,7 +9,7 @@ plugins {
     `maven-publish`
     signing
     id("org.jetbrains.kotlin.jvm") version "2.4.21"
-    id("org.cyclonedx.bom") version "3.5.1"
+    id("org.cyclonedx.bom") version "3.6.0"
 }
 
 group = "com.barrybecker4"
