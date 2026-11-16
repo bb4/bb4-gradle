@@ -92,7 +92,8 @@ bb4 {
 
 ## Migration to 3.0 (settings plugin + catalog)
 
-3.0 adds `com.barrybecker4.bb4.settings`, `bb4-platform`, and `bb4-catalog`. Prefer:
+3.0 adds `com.barrybecker4.bb4.settings`, `bb4-platform`, and `bb4-catalog`. Prefer
+(replace `<bb4-gradle-version>` with the published plugin version):
 
 ```groovy
 pluginManagement {
@@ -105,7 +106,7 @@ pluginManagement {
         maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
     plugins {
-        id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+        id 'com.barrybecker4.bb4.settings' version '<bb4-gradle-version>'
     }
 }
 plugins {
@@ -181,9 +182,9 @@ Optional: update `bb4-website` so leaf apps are not described as deployed to Son
 
 ## Shared quality & shared CI (#43)
 
-Consumer checklist (after `bb4-gradle` `3.0-SNAPSHOT` and `bb4/.github` `bb4-ci.yml` are published):
+Consumer checklist (after `bb4-gradle` 3.x and `bb4/.github` `bb4-ci.yml` are published):
 
-1. Keep `bb4.settings` on `3.0-SNAPSHOT` (sibling `includeBuild` of `bb4-gradle` is fine locally).
+1. Keep `bb4.settings` on `<bb4-gradle-version>` (sibling `includeBuild` of `bb4-gradle` is fine locally).
 2. Replace `.github/workflows/ci.yml` with a thin caller of
    `bb4/.github/.github/workflows/bb4-ci.yml@main`. Prefer inputs over forking the workflow:
    - `publish: true` (+ OSSRH secrets) when the repo publishes SNAPSHOTs

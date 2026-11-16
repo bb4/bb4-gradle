@@ -120,20 +120,39 @@ projectRef.afterEvaluate {
             }
         }
 
-        // Attach CycloneDX Direct SBOM when the plugin/task is present.
-        if (projectRef.plugins.hasPlugin("org.cyclonedx.bom") &&
+        // Attach CycloneDX Direct SBOM to real artifacts only — not Gradle plugin markers.
+        // Each publication gets its own copy of bom.json so Sign tasks do not collide on one .asc
+        // (platform publishes both bb4-platform and bb4-catalog from the same Direct BOM).
+        if (!name.endsWith("PluginMarkerMaven") &&
+            projectRef.plugins.hasPlugin("org.cyclonedx.bom") &&
             projectRef.tasks.names.contains("cyclonedxDirectBom")
         ) {
+            val publicationName = name
             val bomTask = projectRef.tasks.named("cyclonedxDirectBom")
-            artifact(
-                bomTask.map { task ->
-                    task.outputs.files.files.firstOrNull { it.name.endsWith(".json") }
-                        ?: error("CycloneDX task ${task.path} produced no JSON SBOM")
-                },
-            ) {
+            val copyTaskName = "copyCycloneDxBomFor${publicationName.replaceFirstChar { it.uppercaseChar() }}"
+            val bomCopyFile = projectRef.layout.buildDirectory.file("cyclonedx-pubs/$publicationName.json")
+            val copyTask =
+                if (projectRef.tasks.names.contains(copyTaskName)) {
+                    projectRef.tasks.named(copyTaskName)
+                } else {
+                    projectRef.tasks.register(copyTaskName) {
+                        dependsOn(bomTask)
+                        inputs.files(bomTask)
+                        outputs.file(bomCopyFile)
+                        doLast {
+                            val src =
+                                bomTask.get().outputs.files.files.firstOrNull { it.name.endsWith(".json") }
+                                    ?: error("CycloneDX task ${bomTask.get().path} produced no JSON SBOM")
+                            val dest = bomCopyFile.get().asFile
+                            dest.parentFile.mkdirs()
+                            src.copyTo(dest, overwrite = true)
+                        }
+                    }
+                }
+            artifact(bomCopyFile) {
                 classifier = "cyclonedx"
                 extension = "json"
-                builtBy(bomTask)
+                builtBy(copyTask)
             }
         }
     }

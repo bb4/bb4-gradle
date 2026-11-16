@@ -57,7 +57,14 @@ class Bb4SettingsPluginFunctionalTest {
         '''.stripIndent()
     }
 
+    private static String projectVersion() {
+        def v = System.getProperty('bb4.projectVersion')
+        assert v: 'bb4.projectVersion system property required (set by build.gradle.kts test task)'
+        return v
+    }
+
     private static String settingsScript(String rootName) {
+        def pluginVersion = projectVersion()
         return """
             pluginManagement {
                 repositories {
@@ -67,7 +74,7 @@ class Bb4SettingsPluginFunctionalTest {
                     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
                 }
                 plugins {
-                    id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+                    id 'com.barrybecker4.bb4.settings' version '${pluginVersion}'
                 }
             }
             plugins {

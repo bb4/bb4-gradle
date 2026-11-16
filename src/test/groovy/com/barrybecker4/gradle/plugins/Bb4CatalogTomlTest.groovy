@@ -58,8 +58,10 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
 
     @Test
     void 'packaged rendered toml uses project version for bb4-gradle and keeps library versions'() {
+        def projectVersion = System.getProperty('bb4.projectVersion')
+        assert projectVersion: 'bb4.projectVersion system property required (set by build.gradle.kts test task)'
         def packaged = Bb4CatalogToml.loadPackaged()
-        assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(packaged, 'bb4-gradle'))
+        assertEquals(projectVersion, Bb4CatalogToml.version(packaged, 'bb4-gradle'))
         assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(packaged, 'math'))
         assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(packaged, 'common'))
     }

@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "com.barrybecker4"
-version = "3.0-SNAPSHOT"
+// version comes from gradle.properties (single source of truth)
 
 description = "Common Gradle convention plugins for bb4 Scala/Java projects"
 
@@ -122,6 +122,7 @@ tasks.named<Test>("test") {
     // Settings functional tests resolve the plugin from mavenLocal (TestKit cannot
     // includeBuild this project while it is itself building).
     dependsOn("publishToMavenLocal")
+    systemProperty("bb4.projectVersion", version.toString())
 }
 
 fun renderBb4Catalog(text: String, projectVersion: String): String {

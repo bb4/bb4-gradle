@@ -8,8 +8,9 @@ See also [OSSRH Sunset](https://central.sonatype.org/pages/ossrh-eol/).
 
 ## Release checklist (this repo)
 
-1. **Bump version** in `build.gradle.kts` to a release (no `-SNAPSHOT`), e.g. `3.0.0`.
-2. **Update docs** (README examples, CHANGELOG date, migration snippets) to that version.
+1. **Bump version** in `gradle.properties` to a release (no `-SNAPSHOT`). Docs use the
+   placeholder `<bb4-gradle-version>` and do not need a version edit.
+2. **Changelog:** add a dated release section under `CHANGELOG.md` when cutting the release.
 3. **Build locally:** `./gradlew clean build`
 4. **Confirm credentials & GPG** (see [Credentials](#credentials-central-portal-user-token)).
 5. **Publish in one step:** `./gradlew publishArtifacts`
@@ -21,8 +22,8 @@ See also [OSSRH Sunset](https://central.sonatype.org/pages/ossrh-eol/).
    [search.maven.org](https://search.maven.org/artifact/com.barrybecker4/bb4-gradle) /
    Central for `com.barrybecker4:bb4-gradle:<version>` and the plugin markers
    (`com.barrybecker4.bb4.*.gradle.plugin`).
-7. **Commit & tag** the release version, then bump `version` to the next SNAPSHOT
-   (e.g. `3.1-SNAPSHOT`) for continued development.
+7. **Commit & tag** the release version, then bump `version` in `gradle.properties` to the
+   next SNAPSHOT for continued development.
 
 ### Downstream bb4 libraries / apps
 

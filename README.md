@@ -54,7 +54,9 @@ Plugin implementations live under [`src/main/kotlin/`](src/main/kotlin/com/barry
 
 ## Consume in another project
 
-Plugins publish to Maven Central / snapshots (not only the Plugin Portal). Gradle resolves the settings plugin before that plugin can add repositories, so a short `pluginManagement` block remains:
+Plugins publish to Maven Central / snapshots (not only the Plugin Portal). Gradle resolves the settings plugin before that plugin can add repositories, so a short `pluginManagement` block remains.
+
+Replace `<bb4-gradle-version>` with the version on Maven Central (or this repo’s `gradle.properties` while developing locally).
 
 **settings.gradle** (or `.kts`):
 
@@ -70,7 +72,7 @@ pluginManagement {
         maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
     plugins {
-        id 'com.barrybecker4.bb4.settings' version '3.0-SNAPSHOT'
+        id 'com.barrybecker4.bb4.settings' version '<bb4-gradle-version>'
     }
 }
 plugins {
@@ -90,7 +92,7 @@ plugins {
 }
 
 group = 'com.barrybecker4'
-version = '3.0-SNAPSHOT'
+version = '<bb4-gradle-version>'
 
 dependencies {
     implementation bb4Libs.common
@@ -100,7 +102,7 @@ dependencies {
     // implementation bb4Libs.gson
     // implementation platform(bb4Libs.bb4.platform)
     // Or without the catalog:
-    // implementation platform('com.barrybecker4:bb4-platform:3.0-SNAPSHOT')
+    // implementation platform('com.barrybecker4:bb4-platform:<bb4-gradle-version>')
     // implementation 'com.barrybecker4:bb4-common'
 }
 
@@ -208,14 +210,14 @@ on every push and pull request (`build test`, SNAPSHOT publish on `main`).
 
 Full runbook: [docs/publishing-sonatype.md](docs/publishing-sonatype.md). Short version:
 
-1. Set `version` in `build.gradle.kts` (release = **no** `-SNAPSHOT`).
+1. Set `version` in `gradle.properties` (release = **no** `-SNAPSHOT`).
 2. Credentials + GPG: `ossrhToken` / `ossrhTokenPassword` (or `OSSRH_*` env), plus either
    keyring signing props or in-memory `signingKey` / `signingPassword`
    (Central Portal **user token**, not legacy OSSRH).
 3. `./gradlew clean build` then **`./gradlew publishArtifacts`**.
    - Releases: signed bundle → Central Publisher API (`AUTOMATIC` by default).
    - Snapshots: deploy to Central maven-snapshots.
-4. After Central is live, commit/tag the release and bump `version` to the next `-SNAPSHOT`.
+4. After Central is live, commit/tag the release and bump `version` in `gradle.properties` to the next `-SNAPSHOT`.
 
 POM metadata uses `project.group`, `project.description`, and `bb4.repository` (GitHub repo name).
 A CycloneDX SBOM (`classifier=cyclonedx`) is attached to every publication.

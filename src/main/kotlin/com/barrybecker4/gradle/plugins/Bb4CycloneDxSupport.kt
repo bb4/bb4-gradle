@@ -36,7 +36,7 @@ object Bb4CycloneDxSupport {
             )
             return
         }
-        attachBom(pub, project.tasks.named(DIRECT_BOM_TASK))
+        attachBom(project, pub, project.tasks.named(DIRECT_BOM_TASK))
     }
 
     @JvmStatic
@@ -47,17 +47,37 @@ object Bb4CycloneDxSupport {
         }
         val bomTask = project.tasks.named(DIRECT_BOM_TASK)
         publishing.publications.withType(MavenPublication::class.java).configureEach { pub ->
-            attachBom(pub, bomTask)
+            attachBom(project, pub, bomTask)
         }
     }
 
-    private fun attachBom(pub: MavenPublication, bomTask: TaskProvider<Task>) {
-        pub.artifact(
-            bomTask.map { task -> resolveJsonOutput(task) },
-        ) { artifact ->
+    /**
+     * Copy the Direct BOM per publication so multiple Sign tasks do not share one bom.json.asc.
+     */
+    private fun attachBom(project: Project, pub: MavenPublication, bomTask: TaskProvider<Task>) {
+        val safeName = pub.name.replace(Regex("[^A-Za-z0-9_]"), "_")
+        val copyTaskName = "copyCycloneDxBomFor_$safeName"
+        val bomCopyFile = project.layout.buildDirectory.file("cyclonedx-pubs/$safeName.json")
+        val copyTask =
+            if (project.tasks.names.contains(copyTaskName)) {
+                project.tasks.named(copyTaskName)
+            } else {
+                project.tasks.register(copyTaskName) { task ->
+                    task.dependsOn(bomTask)
+                    task.inputs.files(bomTask)
+                    task.outputs.file(bomCopyFile)
+                    task.doLast {
+                        val src = resolveJsonOutput(bomTask.get())
+                        val dest = bomCopyFile.get().asFile
+                        dest.parentFile.mkdirs()
+                        src.copyTo(dest, overwrite = true)
+                    }
+                }
+            }
+        pub.artifact(bomCopyFile) { artifact ->
             artifact.classifier = "cyclonedx"
             artifact.extension = "json"
-            artifact.builtBy(bomTask)
+            artifact.builtBy(copyTask)
         }
     }
 
