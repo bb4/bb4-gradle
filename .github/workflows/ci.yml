@@ -13,6 +13,8 @@ jobs:
     with:
       gradle-args: build test
       publish: true
+      notify-downstream: true
     secrets:
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
       OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      BB4_DISPATCH_TOKEN: ${{ secrets.BB4_DISPATCH_TOKEN }}
