@@ -41,7 +41,7 @@ class Bb4SettingsPluginFunctionalTest {
                 id 'java-library'
             }
             group = 'com.barrybecker4'
-            version = '3.0-SNAPSHOT'
+            version = '3.0'
             java {
                 toolchain { languageVersion = JavaLanguageVersion.of(25) }
             }

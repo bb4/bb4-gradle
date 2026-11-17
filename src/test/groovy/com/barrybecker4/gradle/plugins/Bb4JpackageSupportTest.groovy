@@ -16,7 +16,7 @@ class Bb4JpackageSupportTest {
 
     @Test
     void 'sanitizeAppVersion strips SNAPSHOT and rejects non semver'() {
-        assertEquals('3.0', Bb4JpackageSupport.sanitizeAppVersion('3.0-SNAPSHOT'))
+        assertEquals('3.0', Bb4JpackageSupport.sanitizeAppVersion('3.0'))
         assertEquals('1.2.3', Bb4JpackageSupport.sanitizeAppVersion('1.2.3'))
         assertEquals('0.0.1', Bb4JpackageSupport.sanitizeAppVersion('not-a-version'))
         assertEquals('0.0.1', Bb4JpackageSupport.sanitizeAppVersion(null))

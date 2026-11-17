@@ -36,8 +36,8 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
 
     @Test
     void 'render replaces only bb4-gradle line'() {
-        def rendered = Bb4CatalogToml.render(SAMPLE, '3.0-SNAPSHOT')
-        assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(rendered, 'bb4-gradle'))
+        def rendered = Bb4CatalogToml.render(SAMPLE, '3.0')
+        assertEquals('3.0', Bb4CatalogToml.version(rendered, 'bb4-gradle'))
         assertEquals('3.0.1', Bb4CatalogToml.version(rendered, 'math'))
         assertEquals('3.10.1', Bb4CatalogToml.version(rendered, 'scala'))
     }
@@ -46,7 +46,7 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
     void 'render throws when bb4-gradle line absent'() {
         def without = SAMPLE.replace('bb4-gradle = "0.0.0"\n', '')
         assertThrows(IllegalArgumentException) {
-            Bb4CatalogToml.render(without, '3.0-SNAPSHOT')
+            Bb4CatalogToml.render(without, '3.0')
         }
     }
 
@@ -62,8 +62,8 @@ math = { module = "com.barrybecker4:bb4-math", version.ref = "math" }
         assert projectVersion: 'bb4.projectVersion system property required (set by build.gradle.kts test task)'
         def packaged = Bb4CatalogToml.loadPackaged()
         assertEquals(projectVersion, Bb4CatalogToml.version(packaged, 'bb4-gradle'))
-        assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(packaged, 'math'))
-        assertEquals('3.0-SNAPSHOT', Bb4CatalogToml.version(packaged, 'common'))
+        assertEquals('3.0', Bb4CatalogToml.version(packaged, 'math'))
+        assertEquals('3.0', Bb4CatalogToml.version(packaged, 'common'))
     }
 
     @Test
