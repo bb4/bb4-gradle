@@ -108,7 +108,7 @@ dependencies {
     // Implementation jar (Plugin Portal marker points here).
     implementation("org.gradle.toolchains:foojay-resolver:1.0.0")
     // CycloneDX so Bb4PublishPlugin can apply org.cyclonedx.bom on consumers.
-    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.6.1")
     // Spotless so Bb4QualityPlugin can apply com.diffplug.spotless on consumers.
     implementation("com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:8.11.0")
     testImplementation(gradleTestKit())
