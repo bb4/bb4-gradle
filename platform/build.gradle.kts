@@ -6,7 +6,7 @@ plugins {
     `version-catalog`
     `maven-publish`
     signing
-    id("org.cyclonedx.bom") version "3.5.1"
+    id("org.cyclonedx.bom") version "3.6.1"
 }
 
 group = "com.barrybecker4"
